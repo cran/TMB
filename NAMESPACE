@@ -1,0 +1,60 @@
+
+###____________________ IMPORTS ___________________________________
+
+## Base R - packages ----------------------
+importFrom("graphics", abline, legend, matplot, plot)
+importFrom("methods", as, is, new,
+	   cbind2, rbind2)
+importFrom("stats", approx, confint, integrate, nlminb,
+	   optim, optimHess, pchisq, qchisq, qnorm, rnorm,
+	   runif, sd, splinefun)
+importFrom("utils", as.relistable, relist,
+	   head, tail)
+## Windows specific imports
+if(.Platform$OS.type == "windows"){
+    importFrom("utils", shortPathName)
+}
+
+## Recommended R - packages ----------------------
+importClassesFrom("Matrix")# all currently (FIXME) , corMatrix, dgCMatrix, dgTMatrix, dpoMatrix)
+importMethodsFrom("Matrix", coerce, cov2cor, determinant, drop,
+                  "%*%", crossprod,tcrossprod,
+		  t, diag, chol2inv, solve, colSums,rowSums)
+importFrom("Matrix",
+	   Cholesky, forceSymmetric, invPerm,
+	   tril, triu)
+
+###____________________ EXPORTS ___________________________________
+
+export(benchmark, compile,
+       config,
+       dynlib,
+       gdbsource,
+       MakeADFun,
+       newton,
+       newtonOption,
+       oneStepPredict,
+       openmp,
+       plot.parallelBenchmark,
+       plot.tmbprofile,
+       precompile,
+       print.backtrace,
+       print.sdreport,
+       Rinterface,
+       runExample,
+       runSymbolicAnalysis,
+       sdreport,
+       summary.sdreport,
+       template,
+       tmbprofile)
+
+## Methods :
+S3method(confint, tmbprofile)
+S3method(plot, tmbprofile)
+
+S3method(print, sdreport)
+S3method(summary, sdreport)
+
+S3method(plot, parallelBenchmark)
+
+S3method(print, backtrace)
