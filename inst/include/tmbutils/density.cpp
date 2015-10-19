@@ -1,3 +1,6 @@
+// Copyright (C) 2013-2015 Kasper Kristensen
+// License: GPL-2
+
 /** \file 
    \brief Classes to construct multivariate Gaussian density objects.
 */
@@ -173,7 +176,7 @@ class UNSTRUCTURED_CORR_t : public MVNORM_t<scalartype_>{
   UNSTRUCTURED_CORR_t(vectortype x){
     // (n*n-n)/2=nx  ==>  n*n-n-2*nx=0 ==> n=(1+sqrt(1+8*nx))/2
     int nx=x.size();
-    int n=int((1.0+sqrt(1+8*nx))/2.0);
+    int n=int((1.0+sqrt(1.0+8*nx))/2.0);
     if((n*n-n)/2!=nx)std::cout << "vector does not specify an UNSTRUCTERED_CORR\n";
     matrixtype L(n,n);
     L.setIdentity();

@@ -1,3 +1,6 @@
+## Copyright (C) 2013-2015 Kasper Kristensen
+## License: GPL-2
+
 ##' Compile and run a test example (\code{runExample()} shows all available examples).
 ##'
 ##' @title Run one of the test examples.
@@ -6,8 +9,8 @@
 ##' @param thisR Run inside this R?
 ##' @param clean Cleanup before compile?
 ##' @param exfolder Alternative folder with examples.
-##' @param dontrun Build only - don't run ?
-##' @param ... Passed to \code{compile}.
+##' @param dontrun Build only (don't run) and remove temporary object files ?
+##' @param ... Passed to \code{\link{compile}}.
 runExample <- function(name=NULL,all=FALSE,thisR=TRUE,
                        clean=FALSE,exfolder=NULL,
                        dontrun=FALSE,...){
@@ -59,7 +62,7 @@ runExample <- function(name=NULL,all=FALSE,thisR=TRUE,
     cat("Building example",name,"\n")
     time <- system.time(compile(paste0(name,".cpp"),...))
     cat("Build time",time["elapsed"],"seconds\n\n")
-    file.remove(paste0(name,".o"))
+    if(dontrun)file.remove(paste0(name,".o"))
   }
   if(!dontrun){
     cat("Running example",name,"\n")

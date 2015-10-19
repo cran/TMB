@@ -41,7 +41,8 @@ oneStepPredict(obj, observation.name = NULL, data.term.indicator = NULL,
 \code{data.frame} with OSA residuals in column \code{residual}.
 }
 \description{
-Calculate one-step-ahead (OSA) residuals for a latent variable model.
+Calculate one-step-ahead (OSA) residuals for a latent variable
+model. (\emph{Beta version; may change without notice})
 }
 \details{
 Given a TMB latent variable model this function calculates OSA

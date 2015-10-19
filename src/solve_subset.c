@@ -1,3 +1,6 @@
+// Copyright (C) 2013-2015 Kasper Kristensen
+// License: GPL-2
+
 /* ========================================================== 
    Supernodal version of solvesubset for CHOLMOD supernodal
    sparse Cholesky structures.
@@ -45,6 +48,16 @@
 #include <R_ext/BLAS.h>
 #include <R_ext/Lapack.h>
 #include "Matrix.h"
+
+/* Copy-pasted from "Writing R Extensions" */
+#ifdef __GNUC__
+// this covers gcc, clang, icc
+# undef alloca
+# define alloca(x) __builtin_alloca((x))
+#elif defined(HAVE_ALLOCA_H)
+// needed for native compilers on Solaris and AIX
+# include <alloca.h>
+#endif
 
 // Notes about the CHOLMOD super-nodal storage. 
 // According to the documentation of CHOLMOD we have:

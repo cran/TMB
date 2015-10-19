@@ -18,9 +18,9 @@ runExample(name = NULL, all = FALSE, thisR = TRUE, clean = FALSE,
 
 \item{exfolder}{Alternative folder with examples.}
 
-\item{dontrun}{Build only - don't run ?}
+\item{dontrun}{Build only (don't run) and remove temporary object files ?}
 
-\item{...}{Passed to \code{compile}.}
+\item{...}{Passed to \code{\link{compile}}.}
 }
 \description{
 Compile and run a test example (\code{runExample()} shows all available examples).
