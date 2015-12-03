@@ -30,38 +30,45 @@
 /** \brief TMB: SEXP type */
 struct SEXP_t{
   SEXP value;				/**< \brief SEXP_t: data entry*/
-  SEXP_t(SEXP x){value=x;}		/**< \brief SEXP_t: assignment*/
-  SEXP_t(){value=R_NilValue;}		/**< \brief SEXP_t: default constructor*/
-  operator SEXP(){return value;}	/**< \brief SEXP_t:*/
+  SEXP_t(SEXP x)CSKIP({value=x;})	/**< \brief SEXP_t: assignment*/
+  SEXP_t()CSKIP({value=R_NilValue;})	/**< \brief SEXP_t: default constructor*/
+  operator SEXP()CSKIP({return value;})	/**< \brief SEXP_t:*/
 };
-bool operator<(SEXP_t x, SEXP_t y){return (size_t(x.value)<size_t(y.value));}
+bool operator<(SEXP_t x, SEXP_t y)CSKIP({return (size_t(x.value)<size_t(y.value));})
 /** \brief Controls the life span of objects created in the C++ template (jointly R/C++)*/
 struct memory_manager_struct{
-  int counter;				/**< \brief Number of objects alive that "memory_manager_struct" has allocated */
+  int counter;  /**< \brief Number of objects alive that "memory_manager_struct" has allocated */
   std::map<SEXP_t,SEXP_t> alive;
   /** \brief Register "list" in memory_manager_struct */
-  void RegisterCFinalizer(SEXP list){
-    counter++;
-    SEXP x=VECTOR_ELT(list,0);
-    alive[x]=list;
-  }
+  void RegisterCFinalizer(SEXP list);
   /** \brief Revmoves "x" from memory_manager_struct */
-  void CallCFinalizer(SEXP x){
-    counter--;
-    alive.erase(x);
+  void CallCFinalizer(SEXP x);
+  void clear();
+  memory_manager_struct();
+};
+#ifndef WITH_LIBTMB
+void memory_manager_struct::RegisterCFinalizer(SEXP list){
+  counter++;
+  SEXP x=VECTOR_ELT(list,0);
+  alive[x]=list;
+}
+void memory_manager_struct::CallCFinalizer(SEXP x){
+  counter--;
+  alive.erase(x);
+}
+void memory_manager_struct::clear(){
+  std::map<SEXP_t,SEXP_t>::iterator it;
+  SEXP list;
+  for(it = alive.begin(); it != alive.end(); it++){
+    list=(*it).second;
+    SET_VECTOR_ELT(list,0,R_NilValue);
   }
-  void clear(){
-    std::map<SEXP_t,SEXP_t>::iterator it;
-    SEXP list;
-    for(it = alive.begin(); it != alive.end(); it++){
-      list=(*it).second;
-      SET_VECTOR_ELT(list,0,R_NilValue);
-    }
-  }
-  memory_manager_struct(){
-    counter=0;
-  }
-} memory_manager;
+}
+memory_manager_struct::memory_manager_struct(){
+  counter=0;
+}
+#endif
+TMB_EXTERN memory_manager_struct memory_manager;
 
 /** \brief Convert x to TMB-format for R/C++ communication
 
@@ -73,7 +80,11 @@ struct memory_manager_struct{
    garbage collector (and thereby the finalizers) when the library is
    unloaded.
 */
-SEXP ptrList(SEXP x){
+#ifdef WITH_LIBTMB
+SEXP ptrList(SEXP x);
+#else
+SEXP ptrList(SEXP x)
+{
   SEXP ans,names;
   PROTECT(ans=allocVector(VECSXP,1));
   PROTECT(names=allocVector(STRSXP,1));
@@ -84,6 +95,7 @@ SEXP ptrList(SEXP x){
   UNPROTECT(2);
   return ans;
 }
+#endif
 
 extern "C"{
 #ifdef LIB_UNLOAD
@@ -104,9 +116,9 @@ extern "C"{
 }
 
 #ifdef _OPENMP
-bool _openmp=true;
+TMB_EXTERN bool _openmp CSKIP( =true; )
 #else
-bool _openmp=false;
+TMB_EXTERN bool _openmp CSKIP( =false; )
 #endif
 
 /** \brief Call the optimize method of an ADFun object pointer. */
@@ -121,16 +133,16 @@ void optimizeTape(ADFunPointer pf){
 #pragma omp critical
 #endif
     { /* Avoid multiple tape optimizations at the same time (to reduce memory) */
-      if(config.trace.optimize)std::cout << "Optimizing tape... ";
+      if(config.trace.optimize)Rcout << "Optimizing tape... ";
       pf->optimize();
-      if(config.trace.optimize)std::cout << "Done\n";
+      if(config.trace.optimize)Rcout << "Done\n";
     }
   }
   else
     { /* Allow multiple tape optimizations at the same time */
-      if(config.trace.optimize)std::cout << "Optimizing tape... ";
+      if(config.trace.optimize)Rcout << "Optimizing tape... ";
       pf->optimize();
-      if(config.trace.optimize)std::cout << "Done\n";
+      if(config.trace.optimize)Rcout << "Done\n";
     }
 }
 
@@ -150,6 +162,11 @@ struct isDouble<double>{
    etc (see Rinternals.h).
 */
 typedef Rboolean (*RObjectTester)(SEXP);
+#ifdef WITH_LIBTMB
+void RObjectTestExpectedType(SEXP x, RObjectTester expectedtype, const char *nam);
+Rboolean isValidSparseMatrix(SEXP x);
+Rboolean isNumericScalar(SEXP x);
+#else
 void RObjectTestExpectedType(SEXP x, RObjectTester expectedtype, const char *nam){
   if(expectedtype != NULL){
     if(!expectedtype(x)){
@@ -171,6 +188,7 @@ Rboolean isNumericScalar(SEXP x){
   }
   return isNumeric(x);
 }
+#endif
 
 /* Macros to obtain data and parameters from R */
 
@@ -346,9 +364,12 @@ matrix<int> HessianSparsityPattern(ADFun<Type> *pf){
 
 
 /** \brief Get list element named "str", or return NULL */ 
+#ifdef WITH_LIBTMB
+SEXP getListElement(SEXP list, const char *str, RObjectTester expectedtype=NULL);
+#else
 SEXP getListElement(SEXP list, const char *str, RObjectTester expectedtype=NULL)
 {
-  if(config.debug.getListElement)std::cout << "getListElement: " << str << " ";
+  if(config.debug.getListElement)Rcout << "getListElement: " << str << " ";
   SEXP elmt = R_NilValue, names = getAttrib(list, R_NamesSymbol); 
   int i; 
   for (i = 0; i < length(list); i++) 
@@ -357,15 +378,15 @@ SEXP getListElement(SEXP list, const char *str, RObjectTester expectedtype=NULL)
 	elmt = VECTOR_ELT(list, i); 
 	break; 
       }
-  if(config.debug.getListElement)std::cout << "Length: " << LENGTH(elmt) << " ";
-  if(config.debug.getListElement)std::cout << "\n";
+  if(config.debug.getListElement)Rcout << "Length: " << LENGTH(elmt) << " ";
+  if(config.debug.getListElement)Rcout << "\n";
   RObjectTestExpectedType(elmt, expectedtype, str);
   return elmt; 
 }
-
+#endif
 
 /** \brief Do nothing if we are trying to tape non AD-types */
-void Independent(vector<double> x){}
+void Independent(vector<double> x)CSKIP({})
 
 /** \brief Used by ADREPORT */
 template <class Type>
@@ -942,7 +963,7 @@ extern "C"
     if(_openmp && !returnReport){ // Parallel mode
 #ifdef _OPENMP
       if(config.trace.parallel)
-	std::cout << n << " regions found.\n";
+	Rcout << n << " regions found.\n";
       start_parallel(); /* Start threads */
       vector< ADFun<double>* > pfvec(n);
       bool bad_thread_alloc = false;
@@ -1182,7 +1203,7 @@ extern "C"
     if(_openmp){ // Parallel mode
 #ifdef _OPENMP
       if(config.trace.parallel)
-	std::cout << n << " regions found.\n";
+	Rcout << n << " regions found.\n";
       start_parallel(); /* Start threads */
       vector< ADFun<double>* > pfvec(n);
       bool bad_thread_alloc = false;
@@ -1346,11 +1367,11 @@ extern "C"
 #ifdef _OPENMP
   SEXP MakeADHessObject2(SEXP data, SEXP parameters, SEXP report, SEXP skip){
     if(config.trace.parallel)
-      std::cout << "Count num parallel regions\n";
+      Rcout << "Count num parallel regions\n";
     objective_function< double > F(data,parameters,report);
     int n=F.count_parallel_regions();
     if(config.trace.parallel)
-      std::cout << n << " regions found.\n";
+      Rcout << n << " regions found.\n";
 
     start_parallel(); /* Start threads */
 
@@ -1432,8 +1453,3 @@ extern "C"
 }
 
 #endif /* #ifdef WITH_LIBTMB */
-
-// Trigger inclusion of above symbols (TODO: find better way)
-SEXP dummy_getParameterOrder(SEXP data, SEXP parameters, SEXP report){
-  return getParameterOrder(data, parameters, report);
-}

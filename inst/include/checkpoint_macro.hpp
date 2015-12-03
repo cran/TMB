@@ -59,7 +59,7 @@ namespace atomic{
      (Will be used to tape 'f0' for different nested AD types) */
   template <class Base, class Func>
   CppAD::ADFun<Base>* generate_tape(Func f, vector<double> x_){
-    std::cout << "Generating tape\n";
+    Rcout << "Generating tape\n";
     int n=x_.size();
     vector<AD<Base> > x(n);
     for(int i=0;i<n;i++)x[i]=AD<Base>(x_[i]);
@@ -99,9 +99,9 @@ namespace atomic{
     return multi_forrev(forrev(padf, x_), x_);
   }
   template <>
-  CppAD::ADFun<double>* multi_forrev<double>(CppAD::ADFun<double>* padf, vector<double> x_){
+  CppAD::ADFun<double>* multi_forrev<double>(CppAD::ADFun<double>* padf, vector<double> x_) CSKIP({
     return padf;
-  }
+  })
   /** \brief Tape symbol up to any order */
   template<class Func>
   CppAD::ADFun<double>* tape_symbol(Func f, vector<double> x){

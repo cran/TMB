@@ -2,7 +2,7 @@
 // License: GPL-2
 
 /**
-   \file vector.cpp
+   \file vector.hpp
    Array templates using inheritance.
 */
 
@@ -139,19 +139,28 @@ struct array:Map< Array<Type,Dynamic,1> >{
 
   
   void print(){
-    std::cout << "Array dim: ";
-    for(int i=0;i<dim.size();i++)std::cout << dim[i] << " ";
-    std::cout << "\n";
-    std::cout << "Array val: ";
-    for(int i=0;i<this->MapBase::size();i++)std::cout << this->MapBase::operator[](i) << " ";
-    std::cout << "\n";
+    Rcout << "Array dim: ";
+    for(int i=0;i<dim.size();i++)Rcout << dim[i] << " ";
+    Rcout << "\n";
+    Rcout << "Array val: ";
+    for(int i=0;i<this->MapBase::size();i++)Rcout << this->MapBase::operator[](i) << " ";
+    Rcout << "\n";
   };
 
-  /* Number of outer-most dimensions */
+  /** \brief Number of outer-most dimensions
+      \return Last array dimension (Similar to R's ncol in 2D case
+      only)
+   */
   int cols(){
     return dim[dim.size()-1];
   }
 
+  /** \brief Number of inner-most dimensions
+      \return First array dimension (Similar to R's nrow)
+   */
+  int rows(){
+    return dim[0];
+  }
 
   /** \brief Extract sub-array with write access 
       Index i refers to the outer-most (i.e. final) dimension.

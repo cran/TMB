@@ -13,7 +13,7 @@ typedef vector<scalartype> vectortype;		\
 typedef matrix<scalartype> matrixtype;		\
 typedef array<scalartype> arraytype
 
-#define VARIANCE_NOT_YET_IMPLEMENTED vectortype variance(){}
+#define VARIANCE_NOT_YET_IMPLEMENTED vectortype variance(){vectortype y; return y;}
 
 /** \brief Multivariate normal distribution with user supplied covariance matrix
 
@@ -177,7 +177,7 @@ class UNSTRUCTURED_CORR_t : public MVNORM_t<scalartype_>{
     // (n*n-n)/2=nx  ==>  n*n-n-2*nx=0 ==> n=(1+sqrt(1+8*nx))/2
     int nx=x.size();
     int n=int((1.0+sqrt(1.0+8*nx))/2.0);
-    if((n*n-n)/2!=nx)std::cout << "vector does not specify an UNSTRUCTERED_CORR\n";
+    if((n*n-n)/2!=nx)Rcout << "vector does not specify an UNSTRUCTERED_CORR\n";
     matrixtype L(n,n);
     L.setIdentity();
     int i,j,k=0;
@@ -674,7 +674,7 @@ private:
     return ans;
   }
 public:
-  GMRF_t(){};
+  GMRF_t(){}
   GMRF_t(Eigen::SparseMatrix<scalartype> Q_, int order_=1){
     setQ(Q_,order_);
   }
@@ -924,7 +924,7 @@ public:
     return arraytype(x,revnewdim.reverse());
   }
   scalartype operator()(arraytype x){
-    if(this->ndim() != x.dim.size())std::cout << "Wrong dimension in SEPARABLE_t\n";
+    if(this->ndim() != x.dim.size())Rcout << "Wrong dimension in SEPARABLE_t\n";
     /* Calculate quadform */
     arraytype y(x.dim);
     y=jacobian(x);
@@ -955,7 +955,7 @@ public:
      with i running through the _outer_dimension_ of x.
   */
   scalartype operator()(arraytype x, int i){
-    if(this->ndim() != x.dim.size())std::cout << "Wrong dimension in SEPARABLE_t\n";
+    if(this->ndim() != x.dim.size())Rcout << "Wrong dimension in SEPARABLE_t\n";
     /* Calculate quadform */
     arraytype y(x.dim);
     y=jacobian(x);

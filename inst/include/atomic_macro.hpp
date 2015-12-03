@@ -1,16 +1,8 @@
 // Copyright (C) 2013-2015 Kasper Kristensen
 // License: GPL-2
 
-/* Conditionally skip compilation */
-#ifdef WITH_LIBTMB
-#define CSKIP(x) ;
-#endif
-#ifndef WITH_LIBTMB
-#define CSKIP(x) x
-#endif
-
 /* Flag to detect if any atomic functions have been created */
-bool atomicFunctionGenerated = false;
+TMB_EXTERN bool atomicFunctionGenerated CSKIP( = false; )
 
 /** \brief Construct atomic vector function based on known derivatives */
 #define TMB_ATOMIC_VECTOR_FUNCTION(ATOMIC_NAME,OUTPUT_DIM,ATOMIC_DOUBLE,ATOMIC_REVERSE) \
@@ -27,7 +19,7 @@ public:									\
   atomic##ATOMIC_NAME(const char* name) : CppAD::atomic_base<Type>(name){ \
     atomic::atomicFunctionGenerated = true;				\
     if(config.trace.atomic)						\
-    	std::cout << "Constructing atomic " << #ATOMIC_NAME << "\n" ;	\
+    	Rcout << "Constructing atomic " << #ATOMIC_NAME << "\n" ;	\
     this->option(CppAD::atomic_base<Type>::bool_sparsity_enum);		\
   }									\
 private:								\

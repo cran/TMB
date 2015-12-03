@@ -2,8 +2,8 @@ Package: TMB
 Type: Package
 Title: Template Model Builder: A General Random Effect Tool Inspired by
         ADMB
-Version: 1.6.2
-Date: 2015-10-19
+Version: 1.6.5
+Date: 2015-12-02
 Authors@R: c(person("Kasper","Kristensen",role=c("aut","cre","cph"),email="kaskr@dtu.dk"),
              person("Brad","Bell",role="cph"),
              person("Hans","Skaug",role="ctb"),
@@ -12,7 +12,8 @@ Authors@R: c(person("Kasper","Kristensen",role=c("aut","cre","cph"),email="kaskr
              person("Anders","Nielsen",role="ctb"),
              person("Martin","Maechler",role="ctb"),
              person("Theo","Michelot",role="ctb"),
-             person("Mollie","Brooks",role="ctb") )
+             person("Mollie","Brooks",role="ctb"),
+             person("Cole","Monnahan",role="ctb") )
 Maintainer: Kasper Kristensen <kaskr@dtu.dk>
 Author: Kasper Kristensen [aut, cre, cph],
         Brad Bell [cph],
@@ -22,7 +23,8 @@ Author: Kasper Kristensen [aut, cre, cph],
         Anders Nielsen [ctb],
         Martin Maechler [ctb],
         Theo Michelot [ctb],
-        Mollie Brooks [ctb]
+        Mollie Brooks [ctb],
+        Cole Monnahan [ctb]
 Copyright: See the file COPYRIGHTS
 Description: With this tool, a user should be able to quickly implement complex
     random effect models through simple C++ templates. The package combines
@@ -39,6 +41,6 @@ Imports: graphics, methods, stats, utils, Matrix (>= 1.0-12)
 LinkingTo: Matrix, RcppEigen
 Suggests: numDeriv, parallel
 NeedsCompilation: yes
-Packaged: 2015-10-19 07:13:46 UTC; kaskr
+Packaged: 2015-12-02 22:28:21 UTC; kaskr
 Repository: CRAN
-Date/Publication: 2015-10-19 18:07:12
+Date/Publication: 2015-12-03 13:05:07

@@ -64,12 +64,12 @@ private:
 public:
   /* Construct spline */
   splinefun(){
-    //std::cout << "spline empty constructor\n";
+    //Rcout << "spline empty constructor\n";
     x=y=b=c=d=e=NULL;
     *method = *n = 0;
   };
   splinefun(const splinefun &fun){
-    //std::cout << "spline copy constructor\n";
+    //Rcout << "spline copy constructor\n";
     *method = fun.method[0];
     *n = fun.n[0];
     x = new Type[*n];
