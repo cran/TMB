@@ -53,11 +53,11 @@ struct vector : Array<Type,Dynamic,1>
      1. vector<Type> to CppAD::vector<Type>
      2. vector<int> to CppAD::vector<double>
    */
-  // kasper: maybe not needed now
   template<template<class> class Vector, class T>
   operator Vector<T>(){
-    Vector<T> x(this->size());
-    for(int i=0;i<this->size();i++)x[i]=T(this->operator[](i));
+    int n = this->size();
+    Vector<T> x(n);
+    for(int i=0; i<n; i++) x[i] = T(this->operator[](i));
     return x;
   }
   /* Convert to _this_ vector class
@@ -66,11 +66,11 @@ struct vector : Array<Type,Dynamic,1>
      2. CppAD::vector<Type> to vector<Type> 
      3. CppAD::vector<int> to vector<double> 
   */
-  // kasper: maybe not needed now
   template<template<class> class Vector, class T>
   vector(Vector<T> x):Base(){
-    this->resize(x.size());
-    for(int i=0;i<x.size();i++)this->operator[](i)=Type(x[i]);
+    int n = x.size();
+    this->resize(n);
+    for(int i=0; i<n; i++) this->operator[](i) = Type(x[i]);
   }
 };
 
@@ -101,8 +101,8 @@ struct matrix : Matrix<Type,Dynamic,Dynamic>
      The vec operator stacks the matrix columns into a single vector.
   */
   vector<Type> vec(){
-    vector<Type> x(this->size());
-    for(int i=0;i<x.size();i++)x[i]=this->operator()(i);
-    return x;
+    Array<Type,Dynamic,Dynamic> a = this->array();
+    a.resize(a.size(), 1);
+    return a;
   }
 };
