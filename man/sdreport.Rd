@@ -6,7 +6,8 @@
 \usage{
 sdreport(obj, par.fixed = NULL, hessian.fixed = NULL,
   getJointPrecision = FALSE, bias.correct = FALSE,
-  bias.correct.control = list(sd = FALSE), ignore.parm.uncertainty = FALSE)
+  bias.correct.control = list(sd = FALSE, split = NULL, nsplit = NULL),
+  ignore.parm.uncertainty = FALSE, getReportCovariance = TRUE)
 }
 \arguments{
 \item{obj}{Object returned by \code{MakeADFun}}
@@ -19,9 +20,11 @@ sdreport(obj, par.fixed = NULL, hessian.fixed = NULL,
 
 \item{bias.correct}{logical indicating if bias correction should be applied}
 
-\item{bias.correct.control}{a \code{list} of bias correction options; currently only \code{sd} is used.}
+\item{bias.correct.control}{a \code{list} of bias correction options; currently \code{sd}, \code{split} and \code{nsplit} are used - see details.}
 
 \item{ignore.parm.uncertainty}{Optional. Ignore estimation variance of parameters?}
+
+\item{getReportCovariance}{Get full covariance matrix of ADREPORTed variables?}
 }
 \value{
 Object of class \code{sdreport}
@@ -46,6 +49,11 @@ calculate the covariance matrix of transformed parameters. Let
 \eqn{\phi(\theta)} denote some non-linear function of
 \eqn{\theta}. Then \deqn{V(\phi(\hat\theta))\approx \nabla\phi
 V(\hat\theta) \nabla\phi'}
+
+The covariance matrix of reported variables
+\eqn{V(\phi(\hat\theta))} is returned by default. This can cause
+high memory usage if many variables are ADREPORTed. Use
+\code{getReportCovariance=FALSE} to only return standard errors.
 
 For random effect models a generalized delta-method is used. First
 the joint covariance of random effects and parameters is estimated
@@ -98,6 +106,16 @@ estimator is calculated using
 A further correction is added to this variance to account for the
 effect of replacing \eqn{\theta} by the MLE \eqn{\hat\theta}
 (unless \code{ignore.theta.uncertainty=TRUE}).
+
+Bias correction can be be performed in chunks in order to reduce
+memory usage or in order to only bias correct a subset of
+variables. First option is to pass a list of indices as
+\code{bias.correct.control$split}. E.g. a list
+\code{list(1:2,3:4)} calculates the first four ADREPORTed
+variables in two chunks. Second option is to pass the number of
+chunks as \code{bias.correct.control$nsplit} in which case all
+ADREPORTed variables are bias corrected in the specified number of
+chunks.
 }
 \examples{
 \dontrun{
@@ -121,7 +139,8 @@ obj2 <- MakeADFun(
   parameters = obj$env$parList(),
   map = list(beta   = factor(c(NA, NA)),
              logsdu = factor(NA),
-             logsd0 = factor(NA) )
+             logsd0 = factor(NA) ),
+  DLL = "simple"
 )
 s <- run_mcmc(obj2, 1000, "NUTS")
 plot(rowSums(exp(s)))

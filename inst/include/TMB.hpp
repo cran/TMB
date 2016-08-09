@@ -1,5 +1,14 @@
 // Copyright (C) 2013-2015 Kasper Kristensen
 // License: GPL-2
+/* Utility: Compile time test for Type=double */
+template<class Type>
+struct isDouble{
+  enum{value=false};
+};
+template<>
+struct isDouble<double>{
+  enum{value=true};
+};
 
 /** \file 
 * \brief Includes and sets all stuff needed to compile the user defined objective function.
@@ -65,6 +74,7 @@ namespace CppAD{
 #include "config.hpp"
 #include "atomic_math.hpp"
 #include "expm.hpp"
+#include "atomic_convolve.hpp"
 #include "Vectorize.hpp"
 #include "dnorm.hpp"   // harmless
 #include "lgamma.hpp"  // harmless

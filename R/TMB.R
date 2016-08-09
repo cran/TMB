@@ -19,6 +19,22 @@ grepRandomParameters <- function(parameters,random){
     x
 }
 
+## Associate a 'map' with *one* entry in a parameter list
+updateMap <- function(parameter.entry, map.entry) {
+    ## Shortened parameter
+    ans <- tapply(parameter.entry, map.entry, mean)
+    if(length(ans) == 0) ans <- as.numeric(ans) ## (zero-length case)
+    ## Integer code used to fill short into original shape
+    fnew <- unclass(map.entry)
+    fnew[!is.finite(fnew)] <- 0L
+    fnew <- fnew - 1L
+    ## Output
+    attr(ans,"shape") <- parameter.entry
+    attr(ans,"map") <- fnew
+    attr(ans,"nlevels") <- length(ans)
+    ans
+}
+
 ## Guess name of user's loaded DLL code
 getUserDLL <- function(){
     dlls <- getLoadedDLLs()
@@ -237,18 +253,7 @@ MakeADFun <- function(data, parameters, map=list(),
     param.map <- lapply(names(map),
                         function(nam)
                         {
-                          ## Shortened parameter
-                          ans <- tapply(parameters[[nam]],map[[nam]],mean)
-                          if(length(ans)==0)ans <- as.numeric(ans) ## (zero-length case)
-                          ## Integer code used to fill short into original shape
-                          fnew <- unclass(map[[nam]])
-                          fnew[!is.finite(fnew)] <- 0L
-                          fnew <- fnew-1L
-                          ## Output
-                          attr(ans,"shape") <- parameters[[nam]]
-                          attr(ans,"map") <- fnew
-                          attr(ans,"nlevels") <- length(ans)
-                          ans
+                            updateMap(parameters[[nam]], map[[nam]])
                         })
     ## Now do the change:
     keepAttrib( parameters[names(map)] ) <- param.map
@@ -343,6 +348,7 @@ MakeADFun <- function(data, parameters, map=list(),
         tmp <- lapply(parameters,function(x)x*0)
         tmp[random] <- lapply(tmp[random],function(x)x*0+1)
         random <<- which(as.logical(unlist(tmp)))
+        if(length(random)==0) random <<- NULL
       }
       if(regexp){ ## Original regular expression match
         random <<- grepRandomParameters(parameters,random)
@@ -357,6 +363,7 @@ MakeADFun <- function(data, parameters, map=list(),
           tmp <- lapply(parameters,function(x)x*0)
           tmp[profile] <- lapply(tmp[profile],function(x)x*0+1)
           profile <<- match( which(as.logical(unlist(tmp))) , random )
+          if(length(profile)==0) random <<- NULL
           if(any(duplicated(profile))) stop("Profile parameter vector not unique.")
           tmp <- rep(0L, length(random))
           tmp[profile] <- 1L
@@ -390,15 +397,15 @@ MakeADFun <- function(data, parameters, map=list(),
   ## Has atomic functions been generated for the tapes ?
   usingAtomics <- function().Call("usingAtomics", PACKAGE=DLL)
 
-  f <- function(theta=par, order=0, type=c("ADdouble","double","ADGrad"),
+  f <- function(theta=par, order=0, type="ADdouble",
                 cols=NULL, rows=NULL,
                 sparsitypattern=0, rangecomponent=1, rangeweight=NULL,
-                dumpstack=0) {
+                dumpstack=0, doforward=1) {
     if(isNullPointer(ADFun$ptr)) {
         if(silent)beSilent()
         retape()
     }
-    switch(match.arg(type),
+    switch(type,
            "ADdouble" = {
           res <- .Call("EvalADFunObject", ADFun$ptr, theta,
                        control=list(
@@ -408,7 +415,8 @@ MakeADFun <- function(data, parameters, map=list(),
                                  sparsitypattern=as.integer(sparsitypattern),
                                  rangecomponent=as.integer(rangecomponent),
                                  rangeweight=rangeweight,
-                                 dumpstack=as.integer(dumpstack)
+                                 dumpstack=as.integer(dumpstack),
+                                 doforward=as.integer(doforward)
                                ),
                        PACKAGE=DLL
                        )
@@ -430,7 +438,8 @@ MakeADFun <- function(data, parameters, map=list(),
                                     sparsitypattern=as.integer(sparsitypattern),
                                     rangecomponent=as.integer(rangecomponent),
                                     rangeweight=rangeweight,
-                                    dumpstack=as.integer(dumpstack)),PACKAGE=DLL)
+                                    dumpstack=as.integer(dumpstack),
+                                    doforward=as.integer(doforward)),PACKAGE=DLL)
         },
         stop("invalid 'type'")) # end{ switch() }
     res
@@ -522,7 +531,8 @@ MakeADFun <- function(data, parameters, map=list(),
                         sparsitypattern=as.integer(0),
                         rangecomponent=as.integer(1),
                         rangeweight=as.double(w),
-                        dumpstack=as.integer(0)
+                        dumpstack=as.integer(0),
+                        doforward=as.integer(1)
                       ),
               PACKAGE=DLL)
     }## order == 1
@@ -871,10 +881,12 @@ openmp <- function(n=NULL){
 ##' @param safeunload Turn on preprocessor flag for safe DLL unloading?
 ##' @param openmp Turn on openmp flag? Auto detected for parallel templates.
 ##' @param libtmb Use precompiled TMB library if available (to speed up compilation)?
+##' @param libinit Turn on preprocessor flag to register native routines?
 ##' @param ... Passed as Makeconf variables.
 ##' @seealso \code{\link{precompile}}
 compile <- function(file,flags="",safebounds=TRUE,safeunload=TRUE,
-                    openmp=isParallelTemplate(file[1]),libtmb=TRUE,...){
+                    openmp=isParallelTemplate(file[1]),libtmb=TRUE,
+                    libinit=TRUE,...){
   if(.Platform$OS.type=="windows"){
     ## Overload system.file
     system.file <- function(...){
@@ -941,11 +953,14 @@ compile <- function(file,flags="",safebounds=TRUE,safeunload=TRUE,
   }
   ## Includes and preprocessor flags specific for the template
   useRcppEigen <- !file.exists( system.file("include/Eigen",package="TMB") )
+  useContrib   <-  file.exists( system.file("include/contrib",package="TMB") )
   ppflags <- paste(paste0("-I",system.file("include",package="TMB")),
                    paste0("-I",system.file("include",package="RcppEigen"))[useRcppEigen],
+                   paste0("-I",system.file("include/contrib",package="TMB"))[useContrib],
                    "-DTMB_SAFEBOUNDS"[safebounds],
                    paste0("-DLIB_UNLOAD=R_unload_",libname)[safeunload],
-                   "-DWITH_LIBTMB"[libtmb]
+                   "-DWITH_LIBTMB"[libtmb],
+                   paste0("-DTMB_LIB_INIT=R_init_",libname)[libinit]
                    )
   ## Makevars specific for template
   mvfile <- makevars(PKG_CPPFLAGS=ppflags,
@@ -1007,6 +1022,7 @@ precompile <- function(all=TRUE, clean=FALSE, trace=TRUE,...){
   ## Precompile frequently used classes:
   if(all) precompileSource()
   code <- c(
+      "#undef  TMB_LIB_INIT",
       "#undef  LIB_UNLOAD",
       "#undef  WITH_LIBTMB",
       "#undef  TMB_PRECOMPILE",
@@ -1221,6 +1237,12 @@ newton <- function (par,fn,gr,he,
   nam <- names(par)
   par <- as.vector(par)
   g <- h <- NULL
+  ## Disable CHOLMOD warings
+  if(silent) {
+    oldWarn <- getOption("warn")
+    options(warn = -1)
+    on.exit(options(warn = oldWarn))
+  }
   ## pd.check: Quick test for hessian being positive definite
   iterate <- function(par,pd.check=FALSE) {
     if(file.exists(".Rbreakpoint"))browser() ## secret backdoor to poke around...
@@ -1381,8 +1403,9 @@ sparseHessianFun <- function(obj, skipFixedEffects=FALSE) {
                             hessianrows = integer(0),
                             sparsitypattern = as.integer(0),
                             rangecomponent = as.integer(1),
-                            dumpstack=as.integer(0)),
-		PACKAGE=obj$env$DLL)
+                            dumpstack=as.integer(0),
+                            doforward=as.integer(1)
+                ), PACKAGE=obj$env$DLL)
   n <- as.integer(length(obj$env$par))
   M <- new("dsTMatrix",
            i = as.integer(attr(ADHess$ptr,"i")),
@@ -1442,4 +1465,40 @@ runSymbolicAnalysis <- function(obj){
   L <- .Call("tmb_symbolic",h,PACKAGE="TMB")
   obj$env$L.created.by.newton <- L
   NULL
+}
+
+## url: Can be local or remote zipfile
+## skip.top.level: Skips the top level of unzipped directory.
+install.contrib <- function(url, skip.top.level = FALSE) {
+    owd <- getwd()
+    on.exit(setwd(owd))
+    contrib.folder <- paste0(system.file("include",package="TMB"), "/contrib" )
+    if( !file.exists( contrib.folder ) ) {
+        dir.create(contrib.folder)
+    }
+    zipfile <- tempfile(fileext = ".zip")
+    if(file.exists(url)) {
+        ## Local zip file
+        file.copy(url, zipfile)
+    } else {
+        ## Remote zipfile
+        download.file(url, destfile = zipfile)
+    }
+    tmp.folder <- tempfile()
+    dir.create(tmp.folder)
+    df <- unzip(zipfile, list=TRUE)
+    unzip(zipfile, exdir = tmp.folder)
+    setwd(tmp.folder)
+    ## If unzipped archive is a single folder then strip "-master" from name
+    if(length(dir()) == 1) {
+        if(file_test("-d", dir())) {
+            file.rename(dir(), sub("-master$","",dir()))
+        }
+        if(skip.top.level) setwd(dir())
+    }
+    file.copy(dir(), contrib.folder, recursive=TRUE)
+    file.remove(zipfile)
+    unlink(tmp.folder, recursive=TRUE)
+    cat("NOTE:",contrib.folder,"\n")
+    dir(contrib.folder)
 }

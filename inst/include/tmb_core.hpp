@@ -147,16 +147,6 @@ void optimizeTape(ADFunPointer pf){
     }
 }
 
-/* Utility: Compile time test for Type=double */
-template<class Type>
-struct isDouble{
-  enum{value=false};
-};
-template<>
-struct isDouble<double>{
-  enum{value=true};
-};
-
 /* Helpers, to check that data and parameters are of the right types.
    "RObjectTester" denotes the type of a pointer to a test function.
    Examples of test functions are "isMatrix", "isArray", "isNumeric",
@@ -703,14 +693,9 @@ public:
        If not, we assume that the "epsilon method" has been requested from R, I.e.
        that the un-used theta parameters are reserved for an inner product contribution
        with the numbers reported via ADREPORT. */
-    if(index!=theta.size()){
-      if( index + reportvector.size() != theta.size() )
-	error("evalUserTemplate: Invalid parameter length.");
-      if( reportvector.size() > 0 ){
-	vector<Type> epsilon(reportvector.size());
-	this->fill(epsilon,"epsilon"); /* Assume theta has been sufficiently augmented */
-	ans += ( this->reportvector.result * epsilon ).sum();
-      }
+    if(index != theta.size()){
+      PARAMETER_VECTOR( TMB_epsilon_ );
+      ans += ( this->reportvector.result * TMB_epsilon_ ).sum();
     }
     return ans;
   }
@@ -815,6 +800,8 @@ SEXP EvalADFunObjectTemplate(SEXP f, SEXP theta, SEXP control)
   int n=pf->Domain();
   int m=pf->Range();
   if(LENGTH(theta)!=n)error("Wrong parameter length.");
+  // Do forwardsweep ?
+  int doforward=INTEGER(getListElement(control,"doforward"))[0];
   //R-index -> C-index
   int rangecomponent=INTEGER(getListElement(control,"rangecomponent"))[0]-1;
   if(!((0<=rangecomponent)&(rangecomponent<=m-1)))
@@ -841,13 +828,12 @@ SEXP EvalADFunObjectTemplate(SEXP f, SEXP theta, SEXP control)
       if(nrows>0)rows[i]=INTEGER(hessianrows)[i]-1; //R-index -> C-index
     }
   }
-  vector<double> x(n);
-  for(int i=0;i<n;i++)x[i]=REAL(theta)[i];
+  vector<double> x = asVector<double>(theta);
   SEXP res=R_NilValue;
   SEXP rangeweight=getListElement(control,"rangeweight");
   if(rangeweight!=R_NilValue){
     if(LENGTH(rangeweight)!=m)error("rangeweight must have length equal to range dimension");
-    pf->Forward(0,x);
+    if(doforward)pf->Forward(0,x);
     res=asSEXP(pf->Reverse(1,asVector<double>(rangeweight)));
     UNPROTECT(3);
     return res;
@@ -870,7 +856,7 @@ SEXP EvalADFunObjectTemplate(SEXP f, SEXP theta, SEXP control)
   }
   if(order==1){
     //PROTECT(res=asSEXP(asMatrix(pf->Jacobian(x),m,n)));
-    pf->Forward(0,x);
+    if(doforward)pf->Forward(0,x);
     vector<double> jac(n*m);
     vector<double> u(n);
     vector<double> v(m);
@@ -1476,3 +1462,22 @@ extern "C"
 }
 
 #endif /* #ifdef WITH_LIBTMB */
+
+/* Register native routines (see 'Writing R extensions'). Especially
+   relevant to avoid symbol lookup overhead for those routines that
+   are called many times e.g. EvalADFunObject. */
+extern "C"{
+#ifdef TMB_LIB_INIT
+#include <R_ext/Rdynload.h>
+#define CALLDEF(name, n) {#name, (DL_FUNC) &name, n}
+static R_CallMethodDef CallEntries[] = {
+  CALLDEF(EvalADFunObject, 3),
+  CALLDEF(EvalDoubleFunObject, 3),
+  {NULL, NULL, 0}
+};
+void TMB_LIB_INIT(DllInfo *dll){
+  R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
+}
+#undef CALLDEF
+#endif /* #ifdef  */
+}

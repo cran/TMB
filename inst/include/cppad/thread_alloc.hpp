@@ -1425,9 +1425,11 @@ $end
 		node->extra_     = size_out;
 
 		// call default constructor for each element
+		if(!isDouble<Type>::value){
 		size_t i;
 		for(i = 0; i < size_out; i++)
 			new(array + i) Type();
+		}
 
 		return array;
 	}
@@ -1507,9 +1509,11 @@ $end
 		size_t size     = node->extra_;
 
 		// call destructor for each element
+		if(!isDouble<Type>::value){
 		size_t i;
 		for(i = 0; i < size; i++)
 			(array + i)->~Type();
+		}
 
 		// return the memory to the available pool for this thread
 		thread_alloc::return_memory( reinterpret_cast<void*>(array) );

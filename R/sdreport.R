@@ -20,6 +20,11 @@
 ##' \eqn{\theta}. Then \deqn{V(\phi(\hat\theta))\approx \nabla\phi
 ##' V(\hat\theta) \nabla\phi'}
 ##'
+##' The covariance matrix of reported variables
+##' \eqn{V(\phi(\hat\theta))} is returned by default. This can cause
+##' high memory usage if many variables are ADREPORTed. Use
+##' \code{getReportCovariance=FALSE} to only return standard errors.
+##'
 ##' For random effect models a generalized delta-method is used. First
 ##' the joint covariance of random effects and parameters is estimated
 ##' by
@@ -72,14 +77,25 @@
 ##' effect of replacing \eqn{\theta} by the MLE \eqn{\hat\theta}
 ##' (unless \code{ignore.theta.uncertainty=TRUE}).
 ##'
+##' Bias correction can be be performed in chunks in order to reduce
+##' memory usage or in order to only bias correct a subset of
+##' variables. First option is to pass a list of indices as
+##' \code{bias.correct.control$split}. E.g. a list
+##' \code{list(1:2,3:4)} calculates the first four ADREPORTed
+##' variables in two chunks. Second option is to pass the number of
+##' chunks as \code{bias.correct.control$nsplit} in which case all
+##' ADREPORTed variables are bias corrected in the specified number of
+##' chunks.
+##'
 ##' @title General sdreport function.
 ##' @param obj Object returned by \code{MakeADFun}
 ##' @param par.fixed Optional. Parameter estimate (will be known to \code{obj} when an optimization has been carried out).
 ##' @param hessian.fixed Optional. Hessian wrt. parameters (will be calculated from \code{obj} if missing).
 ##' @param getJointPrecision Optional. Return full joint precision matrix of random effects and parameters?
 ##' @param bias.correct logical indicating if bias correction should be applied
-##' @param bias.correct.control a \code{list} of bias correction options; currently only \code{sd} is used.
+##' @param bias.correct.control a \code{list} of bias correction options; currently \code{sd}, \code{split} and \code{nsplit} are used - see details.
 ##' @param ignore.parm.uncertainty Optional. Ignore estimation variance of parameters?
+##' @param getReportCovariance Get full covariance matrix of ADREPORTed variables?
 ##' @return Object of class \code{sdreport}
 ##' @seealso \code{\link{summary.sdreport}}, \code{\link{print.sdreport}}, \code{\link{as.list.sdreport}}
 ##' @examples
@@ -104,13 +120,15 @@
 ##'   parameters = obj$env$parList(),
 ##'   map = list(beta   = factor(c(NA, NA)),
 ##'              logsdu = factor(NA),
-##'              logsd0 = factor(NA) )
+##'              logsd0 = factor(NA) ),
+##'   DLL = "simple"
 ##' )
 ##' s <- run_mcmc(obj2, 1000, "NUTS")
 ##' plot(rowSums(exp(s)))
 ##' mean(rowSums(exp(s))) }
 sdreport <- function(obj,par.fixed=NULL,hessian.fixed=NULL,getJointPrecision=FALSE,bias.correct=FALSE,
-                     bias.correct.control=list(sd=FALSE), ignore.parm.uncertainty = FALSE){
+                     bias.correct.control=list(sd=FALSE, split=NULL, nsplit=NULL), ignore.parm.uncertainty = FALSE,
+                     getReportCovariance=TRUE){
   if(is.null(obj$env$ADGrad) & (!is.null(obj$env$random)))
     stop("Cannot calculate sd's without type ADGrad available in object for random effect models.")
   ## Make object to calculate ADREPORT vector
@@ -143,7 +161,8 @@ sdreport <- function(obj,par.fixed=NULL,hessian.fixed=NULL,getJointPrecision=FAL
           hessian.fixed <- optimHess(par.fixed,obj$fn,obj$gr) ## Marginal precision of theta.
       }
       pdHess <- !is.character(try(chol(hessian.fixed),silent=TRUE))
-      Vtheta <- solve(hessian.fixed)
+      Vtheta <- try(solve(hessian.fixed),silent=TRUE)
+      if(is(Vtheta, "try-error")) Vtheta <- hessian.fixed * NaN
   }
   ## Get random effect block of the full joint Hessian (hessian.random) and its
   ## Cholesky factor (L)
@@ -155,95 +174,161 @@ sdreport <- function(obj,par.fixed=NULL,hessian.fixed=NULL,getJointPrecision=FAL
       hessian.random@factors <- list(SPdCholesky=L)
     }
   }
-  ## ======== Determine case
-  ## If no random effects use standard delta method
-  simpleCase <- is.null(r)
   ## Get ADreport vector (phi)
-  phi <- try(obj2$fn(par),silent=TRUE)
-  if(is.character(phi) | length(phi)==0){ ## Nothing to report
-    simpleCase <- TRUE
-    phi <- numeric(0)
-  } else { ## Something to report - get derivatives
-    Dphi <- obj2$gr(par)
-    if(!is.null(r)){
-      Dphi.random <- Dphi[,r,drop=FALSE]
-      Dphi.fixed <- Dphi[,-r,drop=FALSE]
-      if(all(Dphi.random==0)){ ## Fall back to simple case
-        simpleCase <- TRUE
-        Dphi <- Dphi.fixed
-      }
-    }
+  phi <- try(obj2$fn(par), silent=TRUE)    ## NOTE_1: obj2 forward sweep now initialized !
+  if(is.character(phi) | length(phi)==0){
+      phi <- numeric(0)
   }
-  ## ======== Do delta method
-  ## Get covariance (cov)
-  if(simpleCase){
-    if(length(phi)>0){
-      cov <- Dphi %*% Vtheta %*% t(Dphi)
-    } else cov <- matrix(,0,0)
+  ADGradForward0Initialized <- FALSE
+  ADGradForward0Initialize <- function() { ## NOTE_2: ADGrad forward sweep now initialized !
+      obj$env$f(par, order = 0, type = "ADGrad")
+      ADGradForward0Initialized <<- TRUE
+  }
+  doDeltaMethod <- function(chunk=NULL){
+      ## ======== Determine case
+      ## If no random effects use standard delta method
+      simpleCase <- is.null(r)
+      if(length(phi)==0){ ## Nothing to report
+          simpleCase <- TRUE
+      } else { ## Something to report - get derivatives
+          if(is.null(chunk)){ ## Do all at once
+              Dphi <- obj2$gr(par)
+          } else {
+              ## Do *chunk* only
+              ## Reduce to Dphi[chunk,] and phi[chunk]
+              w <- rep(0, length(phi))
+              phiDeriv <- function(i){
+                  w[i] <- 1
+                  obj2$env$f(par, order=1, rangeweight=w, doforward=0) ## See NOTE_1
+              }
+              Dphi <- t( sapply(chunk, phiDeriv) )
+              phi <- phi[chunk]
+          }
+          if(!is.null(r)){
+              Dphi.random <- Dphi[,r,drop=FALSE]
+              Dphi.fixed <- Dphi[,-r,drop=FALSE]
+              if(all(Dphi.random==0)){ ## Fall back to simple case
+                  simpleCase <- TRUE
+                  Dphi <- Dphi.fixed
+              }
+          }
+      }
+      ## ======== Do delta method
+      ## Get covariance (cov)
+      if(simpleCase){
+          if(length(phi)>0){
+              cov <- Dphi %*% Vtheta %*% t(Dphi)
+          } else cov <- matrix(,0,0)
+      } else {
+          tmp <- solve(hessian.random,t(Dphi.random))
+          tmp <- as.matrix(tmp)
+          term1 <- Dphi.random%*%tmp ## first term.
+          if(ignore.parm.uncertainty){
+              term2 <- 0
+          } else {
+              ## Use columns of tmp as direction for reverse mode sweep
+              f <- obj$env$f
+              w <- rep(0, length(par))
+              if(!ADGradForward0Initialized) ADGradForward0Initialize()
+              reverse.sweep <- function(i){
+                  w[r] <- tmp[,i]
+                  -f(par, order = 1, type = "ADGrad", rangeweight = w, doforward=0)[-r]
+              }
+              A <- t(do.call("cbind",lapply(seq_along(phi), reverse.sweep))) + Dphi.fixed
+              term2 <- A %*% (Vtheta %*% t(A)) ## second term
+          }
+          cov <- term1 + term2
+      }
+      ##list(phi=phi, cov=cov)
+      cov
+  }
+  if(getReportCovariance){ ## Get all
+      cov <- doDeltaMethod()
+      sd <- sqrt(diag(cov))
   } else {
-    tmp <- solve(hessian.random,t(Dphi.random))
-    tmp <- as.matrix(tmp)
-    term1 <- Dphi.random%*%tmp ## first term.
-    if(ignore.parm.uncertainty){
-        term2 <- 0
-    } else {
-        ## Use columns of tmp as direction for reverse mode sweep
-        f <- obj$env$f
-        w <- rep(0, length(par))
-        reverse.sweep <- function(i){
-            w[r] <- tmp[,i]
-            -f(par, order = 1, type = "ADGrad",rangeweight = w)[-r]
-        }
-        A <- t(do.call("cbind",lapply(seq_along(phi), reverse.sweep))) + Dphi.fixed
-        term2 <- A %*% (Vtheta %*% t(A)) ## second term
-    }
-    cov <- term1 + term2
+      tmp <- lapply(seq_along(phi), doDeltaMethod)
+      sd <- sqrt(unlist(tmp))
+      cov <- NA
   }
   ## Output
-  sd <- sqrt(diag(cov))
   ans <- list(value=phi,sd=sd,cov=cov,par.fixed=par.fixed,
               cov.fixed=Vtheta,pdHess=pdHess,
               gradient.fixed=gradient.fixed)
   ## ======== Calculate bias corrected random effects estimates if requested
   if(bias.correct){
       epsilon <- rep(0,length(phi))
+      names(epsilon) <- names(phi)
       parameters <- obj$env$parameters
-      parameters[[length(parameters)+1]] <- epsilon
-      obj3 <- MakeADFun(obj$env$data,
-                        parameters,
-                        random = obj$env$random,
-                        checkParameterOrder = FALSE,
-                        DLL = obj$env$DLL,
-                        silent = obj$env$silent)
-      ## Get good initial parameters
-      obj3$env$start <- c(par, epsilon)
-      obj3$env$random.start <- expression(start[random])
-      ## Test if Hessian pattern is un-changed
-      h <- obj$env$spHess(random=TRUE)
-      h3 <- obj3$env$spHess(random=TRUE)
-      pattern.unchanged <- identical(h@i,h3@i) & identical(h@p,h3@p)
-      ## If pattern un-changed we can re-use symbolic Cholesky:
-      if(pattern.unchanged){
-          if(!obj$env$silent)
-              cat("Re-using symbolic Cholesky\n")
-          obj3$env$L.created.by.newton <- L
-      } else {
-          if( .Call("have_tmb_symbolic", PACKAGE = "TMB") )
-              runSymbolicAnalysis(obj3)
+      parameters <- c(parameters, list(TMB_epsilon_ = epsilon) )
+      doEpsilonMethod <- function(chunk = NULL) {
+          if(!is.null(chunk)) { ## Only do *chunk*
+              mapfac <- rep(NA, length(phi))
+              mapfac[chunk] <- chunk
+              parameters$TMB_epsilon_ <- updateMap(parameters$TMB_epsilon_,
+                                                   factor(mapfac) )
+          }
+          obj3 <- MakeADFun(obj$env$data,
+                            parameters,
+                            random = obj$env$random,
+                            checkParameterOrder = FALSE,
+                            DLL = obj$env$DLL,
+                            silent = obj$env$silent)
+          ## Get good initial parameters
+          obj3$env$start <- c(par, epsilon)
+          obj3$env$random.start <- expression(start[random])
+          ## Test if Hessian pattern is un-changed
+          h <- obj$env$spHess(random=TRUE)
+          h3 <- obj3$env$spHess(random=TRUE)
+          pattern.unchanged <- identical(h@i,h3@i) & identical(h@p,h3@p)
+          ## If pattern un-changed we can re-use symbolic Cholesky:
+          if(pattern.unchanged){
+              if(!obj$env$silent)
+                  cat("Re-using symbolic Cholesky\n")
+              obj3$env$L.created.by.newton <- L
+          } else {
+              if( .Call("have_tmb_symbolic", PACKAGE = "TMB") )
+                  runSymbolicAnalysis(obj3)
+          }
+          if(!is.null(chunk)) epsilon <- epsilon[chunk]
+          par.full <- c(par.fixed, epsilon)
+          i <- (1:length(par.full)) > length(par.fixed) ## epsilon indices
+          grad <- obj3$gr(par.full)
+          Vestimate <-
+              if(bias.correct.control$sd) {
+                  ## requireNamespace("numDeriv")
+                  hess <- numDeriv::jacobian(obj3$gr, par.full)
+                  -hess[i,i] + hess[i,!i] %*% Vtheta %*% hess[!i,i]
+              } else
+                  matrix(NA)
+          estimate <- grad[i]
+          names(estimate) <- names(epsilon)
+          list(value=estimate, sd=sqrt(diag(Vestimate)), cov=Vestimate)
       }
-      par.full <- c(par.fixed,epsilon)
-      i <- (1:length(par.full))>length(par.fixed) ## epsilon indices
-      grad <- obj3$gr(par.full)
-      Vestimate <-
-          if(bias.correct.control$sd) {
-              ## requireNamespace("numDeriv")
-              hess <- numDeriv::jacobian(obj3$gr,par.full)
-              -hess[i,i] + hess[i,!i] %*% Vtheta %*% hess[!i,i]
-          } else
-              matrix(NA)
-      estimate <- grad[i]
-      names(estimate) <- names(phi)
-      ans$unbiased <- list(value=estimate, sd=sqrt(diag(Vestimate)), cov=Vestimate)
+      nsplit <- bias.correct.control$nsplit
+      if(is.null(nsplit)) {
+          split <- bias.correct.control$split
+      } else {
+          split <- split(seq_along(phi),
+                         cut(seq_along(phi), nsplit))
+      }
+      if( is.null( split ) ){ ## Get all
+          ans$unbiased <- doEpsilonMethod()
+      } else {
+          tmp <- lapply(split, doEpsilonMethod)
+          m <- if (bias.correct.control$sd)
+                   length(phi) else 1
+          ans$unbiased <- list(value = rep(NA, length(phi)),
+                               sd    = rep(NA, m),
+                               cov   = matrix(NA, m, m))
+          for(i in seq_along(split)) {
+              ans$unbiased$value[ split[[i]] ] <- tmp[[i]]$value
+              if (bias.correct.control$sd) {
+                  ans$unbiased$sd   [ split[[i]] ] <- tmp[[i]]$sd
+                  ans$unbiased$cov  [ split[[i]],
+                                      split[[i]] ] <- tmp[[i]]$cov
+              }
+          }
+      }
   }
   ## ======== Find marginal variances of all random effects i.e. phi(u,theta)=u
   if(!is.null(r)){
@@ -256,9 +341,10 @@ sdreport <- function(obj,par.fixed=NULL,hessian.fixed=NULL,getJointPrecision=FAL
       } else {
           f <- obj$env$f
           w <- rep(0, length(par))
+          if(!ADGradForward0Initialized) ADGradForward0Initialize()
           reverse.sweep <- function(i){
               w[i] <- 1
-              f(par, order = 1, type = "ADGrad", rangeweight = w)[r]
+              f(par, order = 1, type = "ADGrad", rangeweight = w, doforward=0)[r]
           }
           nonr <- setdiff(seq_along(par), r)
           tmp <- sapply(nonr,reverse.sweep)
