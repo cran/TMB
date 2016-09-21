@@ -259,7 +259,7 @@ sdreport <- function(obj,par.fixed=NULL,hessian.fixed=NULL,getJointPrecision=FAL
       epsilon <- rep(0,length(phi))
       names(epsilon) <- names(phi)
       parameters <- obj$env$parameters
-      parameters <- c(parameters, list(TMB_epsilon_ = epsilon) )
+      parameters$TMB_epsilon_ <- epsilon ## Appends to list without changing attributes
       doEpsilonMethod <- function(chunk = NULL) {
           if(!is.null(chunk)) { ## Only do *chunk*
               mapfac <- rep(NA, length(phi))
@@ -348,6 +348,8 @@ sdreport <- function(obj,par.fixed=NULL,hessian.fixed=NULL,getJointPrecision=FAL
           }
           nonr <- setdiff(seq_along(par), r)
           tmp <- sapply(nonr,reverse.sweep)
+          if(!is.matrix(tmp)) ## Happens if length(r)==1
+              tmp <- matrix(tmp, ncol=length(nonr) )
           A <- solve(hessian.random, tmp)
           diag.term2 <- rowSums((A %*% Vtheta)*A)
       }
@@ -380,7 +382,7 @@ sdreport <- function(obj,par.fixed=NULL,hessian.fixed=NULL,getJointPrecision=FAL
   ## Copy a few selected members of the environment 'env'. In
   ## particular we need the 'skeleton' objects that allow us to put
   ## results back in same shape as original parameter list.
-  ans$env <- new.env()
+  ans$env <- new.env(parent = emptyenv())
   ans$env$parameters <- obj$env$parameters
   ans$env$random <- obj$env$random
   class(ans) <- "sdreport"

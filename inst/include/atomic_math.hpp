@@ -23,7 +23,7 @@
 */
 namespace atomic {
 /**
-   \brief Namespace with double versions of some R special math
+   \internal \brief Namespace with double versions of some R special math
    functions
 */
 namespace Rmath {
@@ -47,6 +47,7 @@ namespace Rmath {
     double	Rf_qnorm5(double, double, double, int, int);
     double	Rf_ppois(double, double, int, int);
     double	Rf_bessel_k(double, double, double);
+    double	Rf_bessel_i(double, double, double);
     double	Rf_pgamma(double, double, double, int, int);
     double	Rf_qgamma(double, double, double, int, int);
     double	Rf_lgammafn(double);
@@ -152,10 +153,7 @@ struct TypeDefs{
   typedef Eigen::LDLT<Eigen::Matrix<Type, Eigen::Dynamic, Eigen::Dynamic> > LDLT;
 };
 
-/** \name Interface to atomic functions.
-    @{
-*/
-/** \brief Convert segment of CppAD::vector to Eigen::Matrix 
+/** \internal \brief Convert segment of CppAD::vector to Eigen::Matrix
     \param x Input vector.
     \param m Number of rows in result.
     \param n Number of columns in result.
@@ -168,7 +166,7 @@ typename TypeDefs<Type>::ConstMapMatrix vec2mat(const CppAD::vector<Type> &x, in
   return res;
 }
 
-/** \brief Convert Eigen::Matrix to CppAD::vector by stacking the matrix columns.
+/** \internal \brief Convert Eigen::Matrix to CppAD::vector by stacking the matrix columns.
     \param x Input matrix.
 */
 template<class Type>
@@ -178,15 +176,8 @@ CppAD::vector<Type> mat2vec(matrix<Type> x){
   for(int i=0;i<n;i++)res[i]=x(i);
   return res;
 }
-/**
-    @}
-*/
 
-/** \name Atomic functions.
-    @{
-*/
-
-/** \brief Standard normal density function 'dnorm1'. 
+/** \internal \brief Standard normal density function 'dnorm1'.
     Needed to define derivative of 'pnorm1'.
 */
 template<class Type>
@@ -351,13 +342,13 @@ TMB_ATOMIC_VECTOR_FUNCTION(
 
 /** \brief Atomic version of \f$besselK(x,\nu)\f$.
     Valid parameter range: \f$x =(x,\nu) \in \mathbb{R}_+\times\mathbb{R}\f$.
-    \note Derivative wrt. \f$\nu\f$ is currently not implemented.
+    \note This atomic function does not handle the derivative wrt. \f$\nu\f$.
     \param x Input vector of length 2.
     \return Vector of length 1.
 */
 TMB_ATOMIC_VECTOR_FUNCTION(
 			   // ATOMIC_NAME
-			   besselK
+			   bessel_k_10
 			   ,
 			   // OUTPUT_DIM
 			   1
@@ -372,10 +363,38 @@ TMB_ATOMIC_VECTOR_FUNCTION(
 			   CppAD::vector<Type> arg(2);
 			   arg[0] = x;
 			   arg[1] = nu + Type(1);
-			   px[0] = ( -besselK(arg)[0] + value * (nu / x) ) * py[0];
-			   px[1] = Type(0); /* Not yet implemented (!) */
+			   px[0] = ( -bessel_k_10(arg)[0] + value * (nu / x) ) * py[0];
+			   px[1] = Type(0); /* Not implemented (!) */
 			   )
 
+/** \brief Atomic version of \f$besselI(x,\nu)\f$.
+    Valid parameter range: \f$x =(x,\nu) \in \mathbb{R}_+\times\mathbb{R}\f$.
+    \note This atomic function does not handle the derivative wrt. \f$\nu\f$.
+    \param x Input vector of length 2.
+    \return Vector of length 1.
+*/
+TMB_ATOMIC_VECTOR_FUNCTION(
+			   // ATOMIC_NAME
+			   bessel_i_10
+			   ,
+			   // OUTPUT_DIM
+			   1
+			   ,
+			   // ATOMIC_DOUBLE
+			   ty[0] = Rmath::Rf_bessel_i(tx[0], tx[1], 1.0 /* Not scaled */);
+			   ,
+			   // ATOMIC_REVERSE
+			   Type x =  tx[0];
+			   Type nu = tx[1];
+			   CppAD::vector<Type> arg(2);
+			   arg[0] = x;
+			   arg[1] = nu + Type(1);
+			   Type B_right = bessel_i_10(arg)[0];
+			   arg[1] = nu - Type(1);
+			   Type B_left  = bessel_i_10(arg)[0];
+			   px[0] = Type(0.5) * ( B_left + B_right ) * py[0];
+			   px[1] = Type(0); /* Not implemented (!) */
+)
 
 /** \cond */
 template<class Type> /* Header of matmul interface */
@@ -520,18 +539,27 @@ TMB_ATOMIC_VECTOR_FUNCTION(
 			   px=mat2vec(res);
 			   )
 
-/**
-    @}
-*/
-
 /* ================================== INTERFACES
 */
 
-/** \name Interface to atomic functions.
-    @{
-*/
+/** \brief Matrix multiply
 
-/** \brief Matrix multiply */
+    Matrix multiplication of large dense matrices.
+
+    \code
+    matrix<Type> x;
+    matrix<Type> y;
+    atomic::matmul(x, y);
+    \endcode
+
+    For small matrices use
+
+    \code
+    x * y;
+    \endcode
+
+    \ingroup matrix_functions
+*/
 template<class Type>
 matrix<Type> matmul(matrix<Type> x, matrix<Type> y){
   CppAD::vector<Type> arg(2+x.size()+y.size());
@@ -543,12 +571,36 @@ matrix<Type> matmul(matrix<Type> x, matrix<Type> y){
   return vec2mat(res,x.rows(),y.cols());
 }
 
+/** \brief Matrix inverse
+
+    Invert a matrix by LU-decomposition.
+
+    \code
+    matrix<Type> x;
+    atomic::matinv(x);
+    \endcode
+
+    For small matrices use
+
+    \code
+    x.inverse();
+    \endcode
+
+    \ingroup matrix_functions
+*/
 template<class Type>
 matrix<Type> matinv(matrix<Type> x){
   int n=x.rows();
   return vec2mat(matinv(mat2vec(x)),n,n);
 }
 
+/** \brief Matrix inverse and determinant
+
+    Calculate matrix inverse *and* log-determinant of a positive
+    definite matrix.
+
+    \ingroup matrix_functions
+*/
 template<class Type>
 matrix<Type> matinvpd(matrix<Type> x, Type &logdet){
   int n=x.rows();
@@ -557,6 +609,9 @@ matrix<Type> matinvpd(matrix<Type> x, Type &logdet){
   return vec2mat(res,n,n,1);
 }
 
+/** \brief Log-determinant of positive definite matrix
+    \ingroup matrix_functions
+*/
 template<class Type>
 Type logdet(matrix<Type> x){
   return logdet(mat2vec(x))[0];
@@ -572,10 +627,6 @@ Type nldmvnorm(vector<Type> x, matrix<Type> Sigma){
   Type quadform = (x*(Q*x)).sum();
   return -Type(.5)*logdetQ + Type(.5)*quadform + x.size()*Type(log(sqrt(2.0*M_PI)));
 }
-
-/**
-    @}
-*/
 
 } /* End namespace atomic */
 

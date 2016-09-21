@@ -1,4 +1,37 @@
 ------------------------------------------------------------------------
+TMB 1.7.4 (2016-09-21)
+------------------------------------------------------------------------
+
+o Add onLoad check on 'Matrix' package version.
+
+o runExample: Fixed bug when running all examples from a specified
+  example folder.
+
+o sdreport: Fixed bug in the case with exactly one random effect.
+
+o sdreport: Reduced size of output.
+
+------------------------------------------------------------------------
+TMB 1.7.3 (2016-09-05)
+------------------------------------------------------------------------
+
+o New atomic functions:
+  - pbeta
+  - qbeta
+  - dtweedie
+  - besselK (derivatives wrt both arguments)
+  - besselI (derivatives wrt both arguments)
+  - besselJ (derivatives wrt both arguments)
+  - besselY (derivatives wrt both arguments)
+
+o Adaptive numerical integration:
+  - gauss_kronrod::integrate     (one dimension)
+  - gauss_kronrod::mvIntegrate   (multiple dimensions)
+
+o sdreport: Fix bug that caused bias.correction to break when
+  parameter maps were in use.
+
+------------------------------------------------------------------------
 TMB 1.7.2 (2016-08-09)
 ------------------------------------------------------------------------
 
