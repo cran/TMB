@@ -285,6 +285,14 @@ if(isDouble<Type>::value && this->current_parallel_region<0) {		\
   defineVar(install(#name),asSEXP(name),objective_function::report);	\
 }
 
+/** \brief Mark code that is only executed during simulation.
+
+    \note SIMULATE() does nothing in parallel mode.
+    \ingroup macros
+*/
+#define SIMULATE							\
+if(isDouble<Type>::value && objective_function::do_simulate)
+
 /** \brief Report scalar, vector or array back to R with derivative
     information.
 
@@ -326,6 +334,23 @@ getListElement(objective_function::data,#name,&isMatrix)));
     \ingroup macros */
 #define DATA_IARRAY(name) tmbutils::array<int> name(tmbutils::asArray<int>( \
 	getListElement(objective_function::data,#name,&isArray)));
+
+/** \brief Get string from R and declare it as std::string
+
+    Example (incomplete) of use:
+    \code
+    vector<std::string> options(2);
+    options << "apple", "orange";
+    DATA_STRING(choice);
+    if(! (choice == options).any() )
+      error( ("'" + choice + "'" + " not valid").c_str() );
+    \endcode
+
+    \ingroup macros
+*/
+#define DATA_STRING(name)                                                      \
+  std::string name =                                                           \
+      CHAR(STRING_ELT(getListElement(objective_function::data, #name), 0));
 
 /** \brief Get data list object from R and make it available in C++
 
@@ -511,6 +536,11 @@ struct report_stack{
   EIGEN_DEFAULT_DENSE_INDEX_TYPE size(){return result.size();}
 };  // report_stack
 
+extern "C" {
+  void GetRNGstate(void);
+  void PutRNGstate(void);
+}
+
 /** \internal \brief Type definition of user-provided objective function (i.e. neg. log. like) */
 template <class Type>
 class objective_function
@@ -579,6 +609,10 @@ public:
     parallel_ignore_statements=false;
   }
 
+  bool do_simulate;   /** \brief Flag set when in simulation mode */
+  void set_simulate(bool do_simulate_) {
+    do_simulate = do_simulate_;
+  }
 
   /* data_ and parameters_ are R-lists containing R-vectors or R-matrices.
      report_ is an R-environment.  
@@ -613,6 +647,15 @@ public:
     selected_parallel_region=-1;
     max_parallel_regions=-1;
     reversefill=false;
+    do_simulate = false;
+    GetRNGstate(); /* Read random seed from R. Note: by default we do
+                      not write the seed back to R *after*
+                      simulation. This ensures that multiple tapes for
+                      one model object get the same seed. When in
+                      simulation mode (enabled when calling
+                      obj$simulate() from R) we *do* write the seed
+                      back after simulation in order to get varying
+                      replicates. */
   }
 
   /** \brief Extract theta vector from objetive function object */
@@ -1184,6 +1227,7 @@ extern "C"
   SEXP EvalDoubleFunObject(SEXP f, SEXP theta, SEXP control)
   {
     TMB_TRY {
+      int do_simulate = INTEGER(getListElement(control, "do_simulate"))[0];
       objective_function<double>* pf;
       pf = (objective_function<double>*) R_ExternalPtrAddr(f);
       PROTECT( theta=coerceVector(theta,REALSXP) );
@@ -1198,7 +1242,13 @@ extern "C"
       pf->parnames.resize(0); // To avoid mem leak.
       pf->reportvector.clear();
       SEXP res;
+      GetRNGstate();   /* Get seed from R */
+      if(do_simulate) pf->set_simulate( true );
       res = asSEXP( pf->operator()() );
+      if(do_simulate) {
+        pf->set_simulate( false );
+        PutRNGstate(); /* Write seed back to R */
+      }
       UNPROTECT(1);
       return res;
     }

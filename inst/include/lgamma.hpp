@@ -80,6 +80,29 @@ inline Type dnbinom2(const Type &x, const Type &mu, const Type &var,
 }
 VECTORIZE4_ttti(dnbinom2)
 
+/** \brief Negative binomial probability function.
+
+    More robust parameterization through \f$log(\mu)\f$ and
+    \f$log(\sigma^2-\mu)\f$ parameters.
+
+    \ingroup R_style_distribution
+*/
+template<class Type>
+inline Type dnbinom_robust(const Type &x,
+                           const Type &log_mu,
+                           const Type &log_var_minus_mu,
+                           int give_log=0)
+{
+  CppAD::vector<Type> tx(4);
+  tx[0] = x;
+  tx[1] = log_mu;
+  tx[2] = log_var_minus_mu;
+  tx[3] = 0;
+  Type ans = atomic::log_dnbinom_robust(tx)[0];
+  return ( give_log ? ans : exp(ans) );
+}
+VECTORIZE4_ttti(dnbinom_robust)
+
 /** \brief Poisson probability function. 
   \ingroup R_style_distribution
 */
@@ -161,3 +184,32 @@ inline Type dzinbinom2(const Type &x, const Type &mu, const Type &var, const Typ
   Type n=mu*p/(Type(1)-p);
   return dzinbinom(x,n,p,zip,give_log);
 }
+
+/********************************************************************/
+/* SIMULATON CODE                                                   */
+/********************************************************************/
+
+extern "C" {
+  double Rf_rnbinom(double n, double p);
+}
+/** \brief Simulate from a negative binomial distribution  */
+template<class Type>
+Type rnbinom(Type n, Type p)
+{
+  return Rf_rnbinom(asDouble(n), asDouble(p));
+}
+VECTORIZE2_tt(rnbinom)
+VECTORIZE2_n(rnbinom)
+
+extern "C" {
+  double Rf_rnbinom_mu(double mu, double var);
+}
+/** \brief Simulate from a negative binomial distribution  */
+template<class Type>
+Type rnbinom2(Type mu, Type var)
+{
+  Type n=mu*mu/(var-mu);
+  return Rf_rnbinom_mu(asDouble(n), asDouble(mu));
+}
+VECTORIZE2_tt(rnbinom2)
+VECTORIZE2_n(rnbinom2)

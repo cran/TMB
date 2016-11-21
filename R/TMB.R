@@ -175,7 +175,7 @@ MakeADFun <- function(data, parameters, map=list(),
   if(!is.list(data))
     stop("'data' must be a list")
   ok <- function(x)(is.matrix(x)|is.vector(x)|is.array(x))&is.numeric(x)
-  ok.data <- function(x)ok(x)|is.factor(x)|is(x,"sparseMatrix")|is.list(x)
+  ok.data <- function(x)ok(x)|is.factor(x)|is(x,"sparseMatrix")|is.list(x)|(is.character(x)&length(x)==1)
   check.passed <- function(x){
     y <- attr(x,"check.passed")
     if(is.null(y)) FALSE else y
@@ -185,7 +185,7 @@ MakeADFun <- function(data, parameters, map=list(),
       cat("Problem with these data entries:\n")
       print(which(!sapply(data,ok.data)))
       stop("Only numeric matrices, vectors, arrays, ",
-           "factors or lists ",
+           "factors, lists or length-1-characters ",
            "can be interfaced")
     }
   }
@@ -202,7 +202,13 @@ MakeADFun <- function(data, parameters, map=list(),
       if(is.list(x)) return( lapply(x, dataSanitize) )
       if(is(x,"sparseMatrix")){
         x <- as(x,"dgTMatrix")
-      } else {
+      }
+      else if (is.character(x))
+      {
+        ## Do nothing
+      }
+      else
+      {
         if(is.factor(x))x <- unclass(x)-1L ## Factors are passed as 0-based integers !!!
         storage.mode(x) <- "double"
       }
@@ -328,7 +334,7 @@ MakeADFun <- function(data, parameters, map=list(),
       ## Have to call "double-template" to trigger tape generation
       Fun <<- .Call("MakeDoubleFunObject",data,parameters,reportenv,PACKAGE=DLL)
       ## Hack: unlist(parameters) only guarantied to be a permutation of the parameter vecter.
-      .Call("EvalDoubleFunObject",Fun$ptr,unlist(parameters),control=list(order=as.integer(0)),PACKAGE=DLL)
+      .Call("EvalDoubleFunObject",Fun$ptr,unlist(parameters),control=list(do_simulate=as.integer(0)),PACKAGE=DLL)
     }
     if(is.character(profile)){
         random <<- c(random, profile)
@@ -400,7 +406,7 @@ MakeADFun <- function(data, parameters, map=list(),
   f <- function(theta=par, order=0, type="ADdouble",
                 cols=NULL, rows=NULL,
                 sparsitypattern=0, rangecomponent=1, rangeweight=NULL,
-                dumpstack=0, doforward=1) {
+                dumpstack=0, doforward=1, do_simulate=0) {
     if(isNullPointer(ADFun$ptr)) {
         if(silent)beSilent()
         retape()
@@ -416,7 +422,8 @@ MakeADFun <- function(data, parameters, map=list(),
                                  rangecomponent=as.integer(rangecomponent),
                                  rangeweight=rangeweight,
                                  dumpstack=as.integer(dumpstack),
-                                 doforward=as.integer(doforward)
+                                 doforward=as.integer(doforward),
+                                 do_simulate=as.integer(do_simulate)
                                ),
                        PACKAGE=DLL
                        )
@@ -427,7 +434,7 @@ MakeADFun <- function(data, parameters, map=list(),
 
         "double" = {
           res <- .Call("EvalDoubleFunObject", Fun$ptr, theta,
-                       control=list(order=as.integer(order)),PACKAGE=DLL)
+                       control=list(do_simulate=as.integer(do_simulate)),PACKAGE=DLL)
         },
 
         "ADGrad" = {
@@ -769,6 +776,17 @@ MakeADFun <- function(data, parameters, map=list(),
     f(par,order=0,type="double")
     as.list(reportenv)
   }
+  simulate <- function(par = last.par, complete = FALSE){
+    f(par, order = 0, type = "double", do_simulate = TRUE)
+    sim <- as.list(reportenv)
+    if(complete){
+        ans <- data
+        ans[names(sim)] <- sim
+    } else {
+        ans <- sim
+    }
+    ans
+  }
 
   ## return :
   if(is.null(random)) {  ## Output if pure fixed effect model
@@ -799,7 +817,8 @@ MakeADFun <- function(data, parameters, map=list(),
          },
          hessian=hessian, method=method,
          retape=retape, env=env,
-         report=report,...)
+         report=report,
+         simulate=simulate,...)
   }
   else { ## !is.null(random) :  Output if random effect model
     list(par=par[-random],
@@ -836,7 +855,8 @@ MakeADFun <- function(data, parameters, map=list(),
          },
          hessian=hessian, method=method,
          retape=retape, env=env,
-         report=report, ...)
+         report=report,
+         simulate=simulate, ...)
   }
 }## end{ MakeADFun }
 
