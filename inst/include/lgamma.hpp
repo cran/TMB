@@ -17,6 +17,18 @@ Type lgamma(Type x){
 }
 VECTORIZE1_t(lgamma)
 
+/** \brief Logarithm of factorial function (following R argument convention).
+    \ingroup special_functions
+*/
+template<class Type>
+Type lfactorial(Type x){
+  CppAD::vector<Type> tx(2);
+  tx[0] = x + Type(1);
+  tx[1] = Type(0);
+  return atomic::D_lgamma(tx)[0];
+}
+VECTORIZE1_t(lfactorial)
+
 /* Old lgamma approximation */
 template <class Type>
 inline Type lgamma_approx(const Type &y)
@@ -201,15 +213,13 @@ Type rnbinom(Type n, Type p)
 VECTORIZE2_tt(rnbinom)
 VECTORIZE2_n(rnbinom)
 
-extern "C" {
-  double Rf_rnbinom_mu(double mu, double var);
-}
 /** \brief Simulate from a negative binomial distribution  */
 template<class Type>
 Type rnbinom2(Type mu, Type var)
 {
-  Type n=mu*mu/(var-mu);
-  return Rf_rnbinom_mu(asDouble(n), asDouble(mu));
+  Type p = mu / var;
+  Type n = mu * p / (Type(1) - p);
+  return Rf_rnbinom(asDouble(n), asDouble(p));
 }
 VECTORIZE2_tt(rnbinom2)
 VECTORIZE2_n(rnbinom2)

@@ -274,10 +274,9 @@ VECTORIZE4_ttti(dlogis)
 template <class Type>
 Type dsn(Type x, Type alpha, int give_log=0)
 {
-	// TODO : change pnorm_approx to pnorm when pnorm is written	
 	
-	if(!give_log) return 2 * dnorm(x,Type(0),Type(1),0) * pnorm_approx(alpha*x);
-	else return log(2.0) + log(dnorm(x,Type(0),Type(1),0)) + log(pnorm_approx(alpha*x));
+	if(!give_log) return 2 * dnorm(x,Type(0),Type(1),0) * pnorm(alpha*x);
+	else return log(2.0) + log(dnorm(x,Type(0),Type(1),0)) + log(pnorm(alpha*x));
 }
 
 // Vectorize dsn
@@ -364,11 +363,11 @@ VECTORIZE6_ttttti(dSHASHo)
 template <class Type>
 Type pSHASHo(Type q,Type mu,Type sigma,Type nu,Type tau,int give_log=0)
 {
-	// TODO : Replace pnorm_approx by pnorm when it is written. Replace log(x+sqrt(x^2+1)) by a better approximation for asinh(x).
+	// TODO : Replace log(x+sqrt(x^2+1)) by a better approximation for asinh(x).
 
 	Type z = (q-mu)/sigma;
 	Type r = sinh(tau * log(z+sqrt(z*z+1)) - nu);
-	Type p = pnorm_approx(r);
+	Type p = pnorm(r);
 				  	
 	if (!give_log) return p;
 	else return log(p);
@@ -392,10 +391,10 @@ VECTORIZE6_ttttti(pSHASHo)
 template <class Type>
 Type qSHASHo(Type p, Type mu, Type sigma, Type nu, Type tau, int log_p = 0)
 {
-	// TODO : Replace qnorm_approx by qnorm when it is written. Replace log(x+sqrt(x^2+1)) by a better approximation for asinh(x).
+	// TODO : Replace log(x+sqrt(x^2+1)) by a better approximation for asinh(x).
 
-   	if(!log_p) return mu + sigma*sinh((1/tau)* log(qnorm_approx(p)+sqrt(qnorm_approx(p)*qnorm_approx(p)+1)) + (nu/tau));
-   	else return mu + sigma*sinh((1/tau)*log(qnorm_approx(exp(p))+sqrt(qnorm_approx(exp(p))*qnorm_approx(exp(p))+1))+(nu/tau));
+   	if(!log_p) return mu + sigma*sinh((1/tau)* log(qnorm(p)+sqrt(qnorm(p)*qnorm(p)+1)) + (nu/tau));
+   	else return mu + sigma*sinh((1/tau)*log(qnorm(exp(p))+sqrt(qnorm(exp(p))*qnorm(exp(p))+1))+(nu/tau));
 }
 
 // Vectorize qSHASHo
@@ -413,9 +412,8 @@ VECTORIZE6_ttttti(qSHASHo)
 template <class Type>
 Type norm2SHASHo(Type x, Type mu, Type sigma, Type nu, Type tau, int log_p = 0)
 {
-	// TODO : Replace pnorm_approx by pnorm when it is written.
 
-	return qSHASHo(pnorm_approx(x),mu,sigma,nu,tau,log_p);
+	return qSHASHo(pnorm(x),mu,sigma,nu,tau,log_p);
 }
 
 // Vectorize norm2SHASHo
@@ -557,6 +555,86 @@ Type dtweedie(Type y, Type mu, Type phi, Type p, int give_log = 0) {
   return ( give_log ? ans : exp(ans) );
 }
 
+
+/** \brief Conway-Maxwell-Poisson log normalizing constant.
+
+    \f[ Z(\lambda, \nu) = \sum_{i=0}^{\infty} \frac{\lambda^i}{(i!)^\nu} \f] .
+
+    \param loglambda \f$ \log(\lambda) \f$
+    \param nu \f$ \nu \f$
+
+    \return \f$ \log Z(\lambda, \nu) \f$
+*/
+template<class Type>
+Type compois_calc_logZ(Type loglambda, Type nu) {
+  CppAD::vector<Type> tx(3);
+  tx[0] = loglambda;
+  tx[1] = nu;
+  tx[2] = 0;
+  return atomic::compois_calc_logZ(tx)[0];
+}
+VECTORIZE2_tt(compois_calc_logZ)
+
+/** \brief Conway-Maxwell-Poisson. Calculate log(lambda) from
+    log(mean).
+
+    \param logmean \f$ \log(E[X]) \f$
+    \param nu \f$ \nu \f$
+
+    \return \f$ \log \lambda \f$
+*/
+template<class Type>
+Type compois_calc_loglambda(Type logmean, Type nu) {
+  CppAD::vector<Type> tx(3);
+  tx[0] = logmean;
+  tx[1] = nu;
+  tx[2] = 0;
+  return atomic::compois_calc_loglambda(tx)[0];
+}
+VECTORIZE2_tt(compois_calc_loglambda)
+
+/** \brief Conway-Maxwell-Poisson. Calculate density.
+
+    \f[ P(X=x) \propto \frac{\lambda^x}{(x!)^\nu}\:,x=0,1,\ldots \f]
+
+    Silently returns NaN if not within the valid parameter range:
+    \f[ (0 \leq x) \land (0 < \lambda) \land (0 < \nu) \f] .
+
+    \param x Observation
+    \param mode Approximate mode \f$ \lambda^\nu \f$
+    \param nu   \f$ \nu \f$
+
+    \ingroup R_style_distribution
+*/
+template<class T1, class T2, class T3>
+T1 dcompois(T1 x, T2 mode, T3 nu, int give_log = 0) {
+  T2 loglambda = nu * log(mode);
+  T1 ans = x * loglambda - nu * lfactorial(x);
+  ans -= compois_calc_logZ(loglambda, nu);
+  return ( give_log ? ans : exp(ans) );
+}
+
+/** \brief Conway-Maxwell-Poisson. Calculate density parameterized via
+    the mean.
+
+    Silently returns NaN if not within the valid parameter range:
+    \f[ (0 \leq x) \land (0 < E[X]) \land (0 < \nu) \f] .
+
+    \param x Observation
+    \param mean \f$ E[X] \f$
+    \param nu   \f$ \nu \f$
+
+    \ingroup R_style_distribution
+*/
+template<class T1, class T2, class T3>
+T1 dcompois2(T1 x, T2 mean, T3 nu, int give_log = 0) {
+  T2 logmean = log(mean);
+  T2 loglambda = compois_calc_loglambda(logmean, nu);
+  T1 ans = x * loglambda - nu * lfactorial(x);
+  ans -= compois_calc_logZ(loglambda, nu);
+  return ( give_log ? ans : exp(ans) );
+}
+
 /********************************************************************/
 /* SIMULATON CODE                                                   */
 /********************************************************************/
@@ -620,3 +698,112 @@ Type rgamma(Type shape, Type scale)
 }
 VECTORIZE2_tt(rgamma)
 VECTORIZE2_n(rgamma)
+
+extern "C" {
+  double Rf_rexp(double rate);
+}
+/** \brief Simulate from an exponential distribution */
+template<class Type>
+Type rexp(Type rate)
+{
+  return Rf_rexp(asDouble(rate));
+}
+
+VECTORIZE1_t(rexp)
+VECTORIZE1_n(rexp)
+
+extern "C" {
+	double Rf_rbeta(double shape1, double shape2);
+}
+/** \brief Simulate from a beta distribution */
+template<class Type>
+Type rbeta(Type shape1, Type shape2)
+{
+	return Rf_rbeta(asDouble(shape1), asDouble(shape2));
+}
+
+VECTORIZE2_tt(rbeta)
+VECTORIZE2_n(rbeta)
+
+extern "C" {
+	double Rf_rf(double df1, double df2);
+}
+/** \brief Simulate from an F distribution */
+template<class Type>
+Type rf(Type df1, Type df2)
+{
+	return Rf_rf(asDouble(df1), asDouble(df2));
+}
+
+VECTORIZE2_tt(rf)
+VECTORIZE2_n(rf)
+
+extern "C" {
+	double Rf_rlogis(double location, double scale);
+}
+/** \brief Simulate from a logistic distribution */
+template<class Type>
+Type rlogis(Type location, Type scale)
+{
+	return Rf_rlogis(asDouble(location), asDouble(scale));
+}
+
+VECTORIZE2_tt(rlogis)
+VECTORIZE2_n(rlogis)
+
+extern "C" {
+	double Rf_rt(double df);
+}
+/** \brief Simulate from a Student's t distribution */
+template<class Type>
+Type rt(Type df)
+{
+	return Rf_rt(asDouble(df));
+}
+
+VECTORIZE1_t(rt)
+VECTORIZE1_n(rt)
+
+extern "C" {
+	double Rf_rweibull(double shape, double scale);
+}
+/** \brief Simulate from a Weibull distribution */
+template<class Type>
+Type rweibull(Type shape, Type scale)
+{
+	return Rf_rweibull(asDouble(shape), asDouble(scale));
+}
+
+VECTORIZE2_tt(rweibull)
+VECTORIZE2_n(rweibull)
+
+/** \brief Simulate from a Conway-Maxwell-Poisson distribution  */
+template<class Type>
+Type rcompois(Type mode, Type nu)
+{
+  Type loglambda = nu * log(mode);
+  return atomic::compois_utils::simulate(asDouble(loglambda), asDouble(nu));
+}
+VECTORIZE2_tt(rcompois)
+VECTORIZE2_n(rcompois)
+
+/** \brief Simulate from a Conway-Maxwell-Poisson distribution  */
+template<class Type>
+Type rcompois2(Type mean, Type nu)
+{
+  Type logmean = log(mean);
+  Type loglambda = compois_calc_loglambda(logmean, nu);
+  return atomic::compois_utils::simulate(asDouble(loglambda), asDouble(nu));
+}
+VECTORIZE2_tt(rcompois2)
+
+// Note: Vectorize manually to avoid many identical calls to
+// 'calc_loglambda'.
+template<class Type>
+vector<Type> rcompois2(int n, Type mean, Type nu)
+{
+  Type logmean = log(mean);
+  Type loglambda = compois_calc_loglambda(logmean, nu);
+  Type mode = exp(loglambda / nu);
+  return rcompois(n, mode, nu);
+}
