@@ -12,6 +12,8 @@ SEXP tmb_invQ_tril_halfdiag(SEXP Lfac);
 SEXP match_pattern(SEXP A_, SEXP B_);
 SEXP tmb_sparse_izamd(SEXP A_, SEXP mark_, SEXP diag_);
 SEXP tmb_half_diag(SEXP A_);
+SEXP have_tmb_symbolic();
+SEXP tmb_symbolic(SEXP Qp);
 
 static R_CallMethodDef CallEntries[] = {
     CALLDEF(omp_num_threads, 1),
@@ -22,10 +24,13 @@ static R_CallMethodDef CallEntries[] = {
     CALLDEF(match_pattern, 2),
     CALLDEF(tmb_sparse_izamd, 3),
     CALLDEF(tmb_half_diag, 1),
+    CALLDEF(have_tmb_symbolic, 0),
+    CALLDEF(tmb_symbolic, 1),
     {NULL, NULL, 0}
 };
 
 void R_init_TMB(DllInfo *dll)
 {
     R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
+    R_useDynamicSymbols(dll, (Rboolean)FALSE);
 }
