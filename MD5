@@ -1,6 +1,6 @@
-2b002716efb513d35a016e51974b364f *DESCRIPTION
+737ae4c5f3ca9eba26244a042f3bd043 *DESCRIPTION
 dcfe0dd39de7d54d750d3512b0e64538 *NAMESPACE
-cbeb8ece48b6e5a7234fb4230d6047d9 *NEWS
+e814fab23e3368620a05ab5cfa4a7824 *NEWS
 6048e0dd78a77003d2d41c4fbb4c7d7f *R/TMB.R
 e3dd37cda43d844c33b2e95ddefd590c *R/benchmark.R
 8a7c94a1000eae8707f78dc4e11675db *R/config.R
@@ -62,7 +62,7 @@ c80a1b18583bfd6690cec8b2f478b029 *inst/include/cppad/base_require.hpp
 f9bbc2f39373fc2cbf671afcafc7f9f9 *inst/include/cppad/elapsed_seconds.hpp
 a9b2e205016efc2ba661a28a09b2ee6a *inst/include/cppad/error_handler.hpp
 68bdebc518f96b42cfcddfe7b49dfba5 *inst/include/cppad/example/base_adolc.hpp
-a5e5a4705fa418fb27adb72baf6cfde4 *inst/include/cppad/example/cppad_eigen.hpp
+bc0648038820b845e04d2e4c538b274d *inst/include/cppad/example/cppad_eigen.hpp
 37abc01f634bef10b18fce5fa3fefa39 *inst/include/cppad/example/eigen_plugin.hpp
 89a1dbd1cda07aa0ceaf044b0ba28d4c *inst/include/cppad/example/matrix_mul.hpp
 2d3e19e821c782a620e1525d47134e53 *inst/include/cppad/index_sort.hpp
@@ -73,10 +73,10 @@ c88b9d5474365427cc5f2a9eebd24bc4 *inst/include/cppad/local/abort_recording.hpp
 eec1a9defc13c98552e08f6f9a2e3fbe *inst/include/cppad/local/abs.hpp
 1a3332a208ff41e694cc8cbaef61ddce *inst/include/cppad/local/abs_op.hpp
 cf01ae3aaf4c87042577345ddb7967bb *inst/include/cppad/local/acos_op.hpp
-456a8795a2fd95f1faff0f681392f4b8 *inst/include/cppad/local/ad.hpp
+1393b12a6dc637c7cc4fba48dd01a5b0 *inst/include/cppad/local/ad.hpp
 6cde33273fbdb74e8fbbdd9e1097b1a5 *inst/include/cppad/local/ad_assign.hpp
 0d123c4a3b24ac3c77c450033c80e766 *inst/include/cppad/local/ad_binary.hpp
-3236e7efd5a8170d9c6d96d23f0311c7 *inst/include/cppad/local/ad_ctor.hpp
+e7ee1b55a215a07b64bd188bb50d3b79 *inst/include/cppad/local/ad_ctor.hpp
 8e4bbdcd5e7283837773d89f05d0917d *inst/include/cppad/local/ad_fun.hpp
 0af4cdc336831e7908f8b151eb631efa *inst/include/cppad/local/ad_io.hpp
 352bb27cce466c5edbb7ab6b3e16aba8 *inst/include/cppad/local/ad_tape.hpp
@@ -291,7 +291,7 @@ c9e00f5b14e965626c67d6ea6b611be6 *inst/include/tiny_ad/tweedie/tweedie.cpp
 896864fb1ea451068388ea287479682a *inst/include/tmbutils/R_inla.hpp
 c4f3aa56aeb3f665e8140e006718f58e *inst/include/tmbutils/array.hpp
 3e561efb9f96130820f76cde6ebe3de6 *inst/include/tmbutils/autodiff.hpp
-bea33a1a0bc81234e85039dce8eb4bbe *inst/include/tmbutils/density.hpp
+3caf62f4ffe1e34caa14b7af99a8b1e3 *inst/include/tmbutils/density.hpp
 87b3a565c3b9019921e1878688d1383d *inst/include/tmbutils/kronecker.hpp
 6bdc09dd6fbc08b9041a6da3641cdd7c *inst/include/tmbutils/matexp.hpp
 cfaf437e496ea87f73fabbc576bb8204 *inst/include/tmbutils/order.hpp
