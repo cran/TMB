@@ -280,9 +280,11 @@ getListElement(objective_function::data,#name,&isValidSparseMatrix)));
     \note REPORT() does nothing in parallel mode (construction of
     R-objects is not allowed in parallel).
     \ingroup macros */
-#define REPORT(name)							\
-if(isDouble<Type>::value && this->current_parallel_region<0) {		\
-  defineVar(install(#name),asSEXP(name),objective_function::report);	\
+#define REPORT(name)                                            \
+if(isDouble<Type>::value && this->current_parallel_region<0) {  \
+  defineVar(install(#name),                                     \
+            asSEXP_protect(name),objective_function::report);   \
+  UNPROTECT(1);                                                 \
 }
 
 /** \brief Mark code that is only executed during simulation.
@@ -449,7 +451,8 @@ matrix<int> HessianSparsityPattern(ADFun<Type> *pf){
     }
   pf->ForSparseJac(n, Px);
   vector<bool> Py(1); Py[0]=true;
-  return asMatrix(vector<int>(pf->RevSparseHes(n,Py)),n,n);
+  vector<int> tmp = (pf->RevSparseHes(n,Py)).template cast<int>();
+  return asMatrix(tmp, n, n);
 }
 
 /** \internal \brief Get list element named "str", or return NULL */
@@ -1244,12 +1247,12 @@ extern "C"
       SEXP res;
       GetRNGstate();   /* Get seed from R */
       if(do_simulate) pf->set_simulate( true );
-      res = asSEXP( pf->operator()() );
+      PROTECT( res = asSEXP( pf->operator()() ) );
       if(do_simulate) {
         pf->set_simulate( false );
         PutRNGstate(); /* Write seed back to R */
       }
-      UNPROTECT(1);
+      UNPROTECT(2);
       return res;
     }
     TMB_CATCH {
@@ -1474,9 +1477,13 @@ SEXP asSEXP(const sphess_t<ADFunType> &H, const char* tag)
     R_RegisterCFinalizer(res, finalize<ADFunType>);
     /* Return list */
     SEXP ans;
-    setAttrib(res,install("par"),par);
-    setAttrib(res,install("i"),asSEXP(H.i));
-    setAttrib(res,install("j"),asSEXP(H.j));
+    /* Implicitly protected temporaries */
+    SEXP par_symbol = install("par");
+    SEXP i_symbol = install("i");
+    SEXP j_symbol = install("j");
+    setAttrib(res, par_symbol, par);
+    setAttrib(res, i_symbol, asSEXP(H.i));
+    setAttrib(res, j_symbol, asSEXP(H.j));
     PROTECT(ans=ptrList(res));
     UNPROTECT(2);
     return ans;
@@ -1579,21 +1586,29 @@ extern "C"
    relevant to avoid symbol lookup overhead for those routines that
    are called many times e.g. EvalADFunObject. */
 extern "C"{
+  /* May be used as part of custom calldef tables */
+#define TMB_CALLDEFS                                            \
+  {"MakeADFunObject",     (DL_FUNC) &MakeADFunObject,     4},   \
+  {"InfoADFunObject",     (DL_FUNC) &InfoADFunObject,     1},   \
+  {"EvalADFunObject",     (DL_FUNC) &EvalADFunObject,     3},   \
+  {"MakeDoubleFunObject", (DL_FUNC) &MakeDoubleFunObject, 3},   \
+  {"EvalDoubleFunObject", (DL_FUNC) &EvalDoubleFunObject, 3},   \
+  {"getParameterOrder",   (DL_FUNC) &getParameterOrder,   3},   \
+  {"MakeADGradObject",    (DL_FUNC) &MakeADGradObject,    3},   \
+  {"MakeADHessObject2",   (DL_FUNC) &MakeADHessObject2,   4},   \
+  {"usingAtomics",        (DL_FUNC) &usingAtomics,        0},   \
+  {"TMBconfig",           (DL_FUNC) &TMBconfig,           2}
+  /* Default (optional) calldef table. */
 #ifdef TMB_LIB_INIT
 #include <R_ext/Rdynload.h>
-#define CALLDEF(name, n) {#name, (DL_FUNC) &name, n}
 static R_CallMethodDef CallEntries[] = {
-  CALLDEF(MakeADFunObject, 4),
-  CALLDEF(InfoADFunObject, 1),
-  CALLDEF(EvalADFunObject, 3),
-  CALLDEF(MakeDoubleFunObject, 3),
-  CALLDEF(EvalDoubleFunObject, 3),
-  CALLDEF(getParameterOrder, 3),
-  CALLDEF(MakeADGradObject, 3),
-  CALLDEF(MakeADHessObject2, 4),
-  CALLDEF(usingAtomics, 0),
-  CALLDEF(TMBconfig, 2),
-  /* User's R_unload_lib function must also be registered: */
+  TMB_CALLDEFS
+  ,
+  /* User's R_unload_lib function must also be registered (because we
+     disable dynamic lookup - see below). The unload function is
+     mainly useful while developing models in order to clean up
+     external pointers without restarting R. Should not be used by TMB
+     dependent packages. */
 #ifdef LIB_UNLOAD
 #define xstringify(s) stringify(s)
 #define stringify(s) #s
@@ -1601,12 +1616,12 @@ static R_CallMethodDef CallEntries[] = {
 #undef xstringify
 #undef stringify
 #endif
+  /* End of table */
   {NULL, NULL, 0}
 };
 void TMB_LIB_INIT(DllInfo *dll){
   R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
   R_useDynamicSymbols(dll, (Rboolean)FALSE);
 }
-#undef CALLDEF
 #endif /* #ifdef  */
 }
