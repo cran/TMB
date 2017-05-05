@@ -1,6 +1,6 @@
-66c1bf102e2520dfeede34d54f07cc1f *DESCRIPTION
+c4be1e735e9b1aa428b344acc0d6578d *DESCRIPTION
 dcfe0dd39de7d54d750d3512b0e64538 *NAMESPACE
-d6ef4befbc76fb3ddcb6821b8fc4ba0f *NEWS
+6f1d8b1427a81c32985a6067b20e51a7 *NEWS
 3246888896c280ed04b0ba47c0b2e204 *R/TMB.R
 e3dd37cda43d844c33b2e95ddefd590c *R/benchmark.R
 8a7c94a1000eae8707f78dc4e11675db *R/config.R
@@ -11,7 +11,7 @@ b32b77ab5fc27a19b6daf429825e8d0f *R/sdreport.R
 d4060263f951ca8172318ad127e168c6 *R/tmbprofile.R
 e21bab816edef53a0b2185f39a6f675a *R/validation.R
 3cb8325f7584b5e9057e9aa44097f3ed *R/zzz.R
-440a1100f45efadd7c1094be350fd5f8 *inst/CITATION
+eb282d3bb0c3c979198c80bb8713b2aa *inst/CITATION
 24a129cdf0e26106e1c4f0fa86e1561a *inst/COPYRIGHTS
 be8e72009af7b2c27b1aec05c34c67be *inst/examples/ar1xar1.R
 7b3318922db5fc0e236db8286058d319 *inst/examples/ar1xar1.cpp
@@ -22,7 +22,7 @@ cafc553645337e587a317b2b05a5addf *inst/examples/randomregression.R
 3fec001469035289b4897a1c0236a23c *inst/examples/simple.R
 6d62943e2e4a9a93510382e80553edfe *inst/examples/simple.cpp
 3f82e5c500097e5c5be038cecc5389f4 *inst/include/Rstream.hpp
-08a3ec7a0180210c0ff25545697883d5 *inst/include/TMB.hpp
+3ef969cb1b5fc153f89a0b35a577ffb8 *inst/include/TMB.hpp
 f205587b08f564b304024ed17b64d12f *inst/include/Vectorize.hpp
 1722ff25f1321ce2cc76bd1b211cde07 *inst/include/atomic_convolve.hpp
 1e2d92e7a899c9349d15f8cf4c11bb75 *inst/include/atomic_macro.hpp
@@ -73,10 +73,10 @@ c88b9d5474365427cc5f2a9eebd24bc4 *inst/include/cppad/local/abort_recording.hpp
 eec1a9defc13c98552e08f6f9a2e3fbe *inst/include/cppad/local/abs.hpp
 1a3332a208ff41e694cc8cbaef61ddce *inst/include/cppad/local/abs_op.hpp
 cf01ae3aaf4c87042577345ddb7967bb *inst/include/cppad/local/acos_op.hpp
-1393b12a6dc637c7cc4fba48dd01a5b0 *inst/include/cppad/local/ad.hpp
+541cbe206e55e50cbd0f3ddd78cbbe5c *inst/include/cppad/local/ad.hpp
 6cde33273fbdb74e8fbbdd9e1097b1a5 *inst/include/cppad/local/ad_assign.hpp
 0d123c4a3b24ac3c77c450033c80e766 *inst/include/cppad/local/ad_binary.hpp
-e7ee1b55a215a07b64bd188bb50d3b79 *inst/include/cppad/local/ad_ctor.hpp
+7060f52c103ebf585fbace268cbf603e *inst/include/cppad/local/ad_ctor.hpp
 8e4bbdcd5e7283837773d89f05d0917d *inst/include/cppad/local/ad_fun.hpp
 0af4cdc336831e7908f8b151eb631efa *inst/include/cppad/local/ad_io.hpp
 352bb27cce466c5edbb7ab6b3e16aba8 *inst/include/cppad/local/ad_tape.hpp
@@ -291,7 +291,7 @@ c71575076657496f00509e2de0df930a *inst/include/tmb_core.hpp
 896864fb1ea451068388ea287479682a *inst/include/tmbutils/R_inla.hpp
 c4f3aa56aeb3f665e8140e006718f58e *inst/include/tmbutils/array.hpp
 c1de95924019c11f2892105a190bfdd1 *inst/include/tmbutils/autodiff.hpp
-3caf62f4ffe1e34caa14b7af99a8b1e3 *inst/include/tmbutils/density.hpp
+a98fa4b39af8fdb4fbf50a97e8476b06 *inst/include/tmbutils/density.hpp
 87b3a565c3b9019921e1878688d1383d *inst/include/tmbutils/kronecker.hpp
 6bdc09dd6fbc08b9041a6da3641cdd7c *inst/include/tmbutils/matexp.hpp
 cfaf437e496ea87f73fabbc576bb8204 *inst/include/tmbutils/order.hpp
