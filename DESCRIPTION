@@ -2,8 +2,8 @@ Package: TMB
 Type: Package
 Title: Template Model Builder: A General Random Effect Tool Inspired by
         'ADMB'
-Version: 1.7.11
-Date: 2017-08-09
+Version: 1.7.12
+Date: 2017-12-10
 Authors@R: c(person("Kasper","Kristensen",role=c("aut","cre","cph"),email="kaskr@dtu.dk"),
              person("Brad","Bell",role="cph"),
              person("Hans","Skaug",role="ctb"),
@@ -46,6 +46,6 @@ LinkingTo: Matrix, RcppEigen
 Suggests: numDeriv, parallel
 RoxygenNote: 5.0.1
 NeedsCompilation: yes
-Packaged: 2017-08-09 12:18:25 UTC; kaskr
+Packaged: 2017-12-10 21:25:58 UTC; kaskr
 Repository: CRAN
-Date/Publication: 2017-08-09 20:42:38 UTC
+Date/Publication: 2017-12-11 12:14:57 UTC

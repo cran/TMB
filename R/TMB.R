@@ -835,13 +835,14 @@ MakeADFun <- function(data, parameters, map=list(),
            if(is.character(ans))NaN else ans
          },
          gr=function(x=last.par[-random],...){
-           ans <- {
+           ans <- try( {
              if(MCcontrol$doMC){
                ff(x,order=0)
                MC(last.par,n=MCcontrol$n,seed=MCcontrol$seed,order=1)
              } else
                ff(x,order=1)
-           }
+           }, silent=silent)
+           if(is.character(ans)) ans <- rep(NaN, length(x))
            if(tracemgc)cat("outer mgc: ",max(abs(ans)),"\n")
            ans
          },
@@ -902,11 +903,12 @@ openmp <- function(n=NULL){
 ##' @param openmp Turn on openmp flag? Auto detected for parallel templates.
 ##' @param libtmb Use precompiled TMB library if available (to speed up compilation)?
 ##' @param libinit Turn on preprocessor flag to register native routines?
+##' @param tracesweep Turn on preprocessor flag to trace AD sweeps? (Silently disables \code{libtmb})
 ##' @param ... Passed as Makeconf variables.
 ##' @seealso \code{\link{precompile}}
 compile <- function(file,flags="",safebounds=TRUE,safeunload=TRUE,
                     openmp=isParallelTemplate(file[1]),libtmb=TRUE,
-                    libinit=TRUE,...){
+                    libinit=TRUE,tracesweep=FALSE,...){
   if(.Platform$OS.type=="windows"){
     ## Overload system.file
     system.file <- function(...){
@@ -914,6 +916,8 @@ compile <- function(file,flags="",safebounds=TRUE,safeunload=TRUE,
       chartr("\\", "/", shortPathName(ans))
     }
   }
+  ## Cannot use the pre-compiled library when enabling sweep tracing
+  if (tracesweep) libtmb <- FALSE
   ## libtmb existence
   debug <-
       length(grep("-O0", flags)) &&
@@ -980,7 +984,8 @@ compile <- function(file,flags="",safebounds=TRUE,safeunload=TRUE,
                    "-DTMB_SAFEBOUNDS"[safebounds],
                    paste0("-DLIB_UNLOAD=R_unload_",libname)[safeunload],
                    "-DWITH_LIBTMB"[libtmb],
-                   paste0("-DTMB_LIB_INIT=R_init_",libname)[libinit]
+                   paste0("-DTMB_LIB_INIT=R_init_",libname)[libinit],
+                   "-DCPPAD_FORWARD0SWEEP_TRACE"[tracesweep]
                    )
   ## Makevars specific for template
   mvfile <- makevars(PKG_CPPFLAGS=ppflags,
