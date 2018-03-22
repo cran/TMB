@@ -528,37 +528,53 @@ void Independent(vector<double> x)CSKIP({})
 template <class Type>
 struct report_stack{
   vector<const char*> names;
-  vector<int> namelength;
+  vector<vector<int> > namedim;
   vector<Type> result;
   void clear(){
     names.resize(0);
-    namelength.resize(0);
+    namedim.resize(0);
     result.resize(0);
   }
-  /* Make space for n new items of given name */
-  void increase(int n, const char* name){
-    names.conservativeResize(names.size()+1);
-    names[names.size()-1]=name;
-    namelength.conservativeResize(namelength.size()+1);
-    namelength[namelength.size()-1]=n;
-    result.conservativeResize(result.size()+n);
+  /* Make space for 'prod(dim)' new items of given name */
+  void increase(vector<int> dim, const char* name){
+    int n = dim.prod();
+    names.conservativeResize(names.size() + 1);
+    names[names.size() - 1] = name;
+    namedim.conservativeResize(namedim.size() + 1);
+    namedim[namedim.size() - 1] = dim;
+    result.conservativeResize(result.size() + n);
   }
-  // push scalar
+  // Get dimension of various object types
+  vector<int> getDim(const matrix<Type> &x) {
+    vector<int> dim(2);
+    dim << x.rows(), x.cols();
+    return dim;
+  }
+  vector<int> getDim(const tmbutils::array<Type> &x) {
+    return x.dim;
+  }
+  template<class Other> // i.e. vector or expression
+  vector<int> getDim(const Other &x) {
+    vector<int> dim(1);
+    dim << x.size();
+    return dim;
+  }
+  // push vector, matrix or array
+  template<class Vector_Matrix_Or_Array>
+  void push(Vector_Matrix_Or_Array x, const char* name) {
+    int n = x.size();
+    int oldsize = result.size();
+    vector<int> dim = getDim(x);
+    increase(dim, name);
+    Eigen::Array<Type, Eigen::Dynamic, Eigen::Dynamic> xvec = x;
+    xvec.resize(xvec.size(), 1);
+    result.segment(oldsize, n) = xvec;
+  }
+  // push scalar (convert to vector case)
   void push(Type x, const char* name){
-    increase(1,name);
-    result[result.size()-1]=x;
-  }
-  // push vector or array
-  template<class VectorType>
-  void push(VectorType x, const char* name){
-    int n=x.size();
-    int oldsize=result.size();
-    increase(n,name);
-    for(int i=0;i<n;i++)result[oldsize+i]=x[i];
-  }
-  // push matrix
-  void push(matrix<Type> x, const char* name){
-    push(x.vec(),name);
+    vector<Type> xvec(1);
+    xvec[0] = x;
+    push(xvec, name);
   }
   // Cast to vector
   operator vector<Type>(){
@@ -567,18 +583,31 @@ struct report_stack{
   /* Get names (with replicates) to R */
   SEXP reportnames()
   {
-    int n=result.size();
+    int n = result.size();
     SEXP nam;
-    PROTECT(nam=Rf_allocVector(STRSXP,n));
-    int k=0;
-    for(int i=0;i<names.size();i++){
-      for(int j=0;j<namelength[i];j++){
-	SET_STRING_ELT(nam,k,Rf_mkChar(names[i]));
-	k++;
+    PROTECT( nam = Rf_allocVector(STRSXP, n) );
+    int k = 0;
+    for(int i = 0; i < names.size(); i++) {
+      int namelength = namedim(i).prod();
+      for(int j = 0; j < namelength; j++) {
+        SET_STRING_ELT(nam, k, Rf_mkChar(names[i]) );
+        k++;
       }
     }
     UNPROTECT(1);
     return nam;
+  }
+  /* Get AD reported object dims */
+  SEXP reportdims() {
+    SEXP ans, nam;
+    PROTECT( ans = asSEXP(namedim) );
+    PROTECT( nam = Rf_allocVector(STRSXP, names.size()) );
+    for(int i = 0; i < names.size(); i++) {
+      SET_STRING_ELT(nam, i, Rf_mkChar(names[i]));
+    }
+    Rf_setAttrib(ans, R_NamesSymbol, nam);
+    UNPROTECT(2);
+    return ans;
   }
   EIGEN_DEFAULT_DENSE_INDEX_TYPE size(){return result.size();}
 };  // report_stack
@@ -703,6 +732,12 @@ public:
                       obj$simulate() from R) we *do* write the seed
                       back after simulation in order to get varying
                       replicates. */
+  }
+
+  /** \brief Syncronize user's data object. It could be changed between calls to e.g. EvalDoubleFunObject */
+  void sync_data() {
+    SEXP env = ENCLOS(this->report);
+    this->data = findVar(install("data"), env);
   }
 
   /** \brief Extract theta vector from objetive function object */
@@ -1274,8 +1309,10 @@ extern "C"
   {
     TMB_TRY {
       int do_simulate = INTEGER(getListElement(control, "do_simulate"))[0];
+      int get_reportdims = INTEGER(getListElement(control, "get_reportdims"))[0];
       objective_function<double>* pf;
       pf = (objective_function<double>*) R_ExternalPtrAddr(f);
+      pf -> sync_data();
       PROTECT( theta=Rf_coerceVector(theta,REALSXP) );
       int n = pf->theta.size();
       if (LENGTH(theta)!=n) Rf_error("Wrong parameter length.");
@@ -1294,6 +1331,12 @@ extern "C"
       if(do_simulate) {
         pf->set_simulate( false );
         PutRNGstate(); /* Write seed back to R */
+      }
+      if(get_reportdims) {
+        SEXP reportdims;
+        PROTECT( reportdims = pf -> reportvector.reportdims() );
+        setAttrib( res, install("reportdims"), reportdims);
+        UNPROTECT(1);
       }
       UNPROTECT(2);
       return res;
