@@ -545,13 +545,17 @@ VECTORIZE2_tt(besselY)
 */
 template<class Type>
 Type dtweedie(Type y, Type mu, Type phi, Type p, int give_log = 0) {
-  CppAD::vector<Type> tx(5);
-  tx[0] = y;
-  tx[1] = mu;
-  tx[2] = phi;
-  tx[3] = p;
-  tx[4] = 0;
-  Type ans = atomic::log_dtweedie(tx)[0];
+  Type p1 = p - 1.0, p2 = 2.0 - p;
+  Type ans = -pow(mu, p2) / (phi * p2); // log(prob(y=0))
+  if (y > 0) {
+    CppAD::vector<Type> tx(4);
+    tx[0] = y;
+    tx[1] = phi;
+    tx[2] = p;
+    tx[3] = 0;
+    ans += atomic::tweedie_logW(tx)[0];
+    ans += -y / (phi * p1 * pow(mu, p1)) - log(y);
+  }
   return ( give_log ? ans : exp(ans) );
 }
 
@@ -601,7 +605,7 @@ VECTORIZE2_tt(compois_calc_loglambda)
     \f[ (0 \leq x) \land (0 < \lambda) \land (0 < \nu) \f] .
 
     \param x Observation
-    \param mode Approximate mode \f$ \lambda^\nu \f$
+    \param mode Approximate mode \f$ \lambda^\frac{1}{\nu} \f$
     \param nu   \f$ \nu \f$
 
     \ingroup R_style_distribution
