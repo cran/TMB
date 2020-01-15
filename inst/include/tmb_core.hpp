@@ -434,45 +434,65 @@ Type objective_function<Type>::operator() ()
 #define DATA_STRUCT(name, struct)                                       \
 struct<Type> name(getListElement(TMB_OBJECTIVE_PTR -> data, #name));
 
-/** \brief Utilities for OSA residuals */
+/** \brief Utilities for OSA residuals
+    \tparam VT Can be **vector<Type>** or **array<Type>**
+    \warning When extracting subsets of a `data_indicator` note that in general the subset is not applied to `cdf_lower` and `cdf_upper`.
+*/
 template<class VT, class Type>
 struct data_indicator : VT{
-  VT cdf_lower, cdf_upper;
-  /* Construct from observation */
-  data_indicator(VT obs){
-    VT::operator=(obs); VT::fill(Type(1.0));
+  /** \brief **Logarithm** of lower CDF */
+  VT cdf_lower;
+  /** \brief **Logarithm** of upper CDF */
+  VT cdf_upper;
+  /** \brief Default CTOR */
+  data_indicator() { }
+  /** \brief Construct from observation vector
+      \param obs Observation vector or array
+      \param init_one If true the data_indicator will be filled with ones signifying that all observations should be enabled.
+  */
+  data_indicator(VT obs, bool init_one = false){
+    VT::operator=(obs);
+    if (init_one) VT::fill(Type(1.0));
     cdf_lower = obs; cdf_lower.setZero();
     cdf_upper = obs; cdf_upper.setZero();
   }
-  /* Fill with parameter vector */
+  /** \brief Fill with parameter vector */
   void fill(vector<Type> p){
     int n = (*this).size();
     if(p.size() >= n  ) VT::operator=(p.segment(0, n));
     if(p.size() >= 2*n) cdf_lower = p.segment(n, n);
     if(p.size() >= 3*n) cdf_upper = p.segment(2 * n, n);
   }
+  /** \brief Extract segment of indicator vector or array
+      \note For this method the segment **is** applied to `cdf_lower` and `cdf_upper`. */
+  data_indicator segment(int pos, int n) {
+    data_indicator ans ( VT::segment(pos, n) );
+    ans.cdf_lower = cdf_lower.segment(pos, n);
+    ans.cdf_upper = cdf_upper.segment(pos, n);
+    return ans;
+  }
 };
 
-/** \brief Declare an indicator array 'name' of same shape as 'obs'.
-
+/** \brief Declare an indicator array 'name' of same shape as 'obs'. By default, the indicator array is filled with ones indicating that all observations are enabled.
+    \details
     This is used in conjunction with one-step-ahead residuals - see
     ?oneStepPredict
     \ingroup macros */
 #define DATA_ARRAY_INDICATOR(name, obs)                                 \
-data_indicator<tmbutils::array<Type>, Type > name(obs);                 \
+data_indicator<tmbutils::array<Type>, Type > name(obs, true);           \
 if (!Rf_isNull(getListElement(TMB_OBJECTIVE_PTR -> parameters,#name))){ \
   name.fill( TMB_OBJECTIVE_PTR -> fillShape(asVector<Type>(             \
              TMB_OBJECTIVE_PTR -> getShape(#name, &Rf_isNumeric)),      \
                                            #name) );                    \
 }
 
-/** \brief Declare an indicator vector 'name' of same shape as 'obs'.
-
+/** \brief Declare an indicator vector 'name' of same shape as 'obs'. By default, the indicator vector is filled with ones indicating that all observations are enabled.
+    \details
     This is used in conjunction with one-step-ahead residuals - see
     ?oneStepPredict
     \ingroup macros */
 #define DATA_VECTOR_INDICATOR(name, obs)                                \
-data_indicator<tmbutils::vector<Type>, Type > name(obs);                \
+data_indicator<tmbutils::vector<Type>, Type > name(obs, true);          \
 if (!Rf_isNull(getListElement(TMB_OBJECTIVE_PTR -> parameters,#name))){ \
   name.fill( TMB_OBJECTIVE_PTR -> fillShape(asVector<Type>(             \
              TMB_OBJECTIVE_PTR -> getShape(#name, &Rf_isNumeric)),      \
@@ -502,6 +522,7 @@ matrix<int> HessianSparsityPattern(ADFun<Type> *pf){
 /** \internal \brief Get list element named "str", or return NULL */
 #ifdef WITH_LIBTMB
 SEXP getListElement(SEXP list, const char *str, RObjectTester expectedtype=NULL);
+int  getListInteger(SEXP list, const char *str, int default_value = 0);
 #else
 SEXP getListElement(SEXP list, const char *str, RObjectTester expectedtype=NULL)
 {
@@ -518,6 +539,14 @@ SEXP getListElement(SEXP list, const char *str, RObjectTester expectedtype=NULL)
   if(config.debug.getListElement)Rcout << "\n";
   RObjectTestExpectedType(elmt, expectedtype, str);
   return elmt; 
+}
+int getListInteger(SEXP list, const char *str, int default_value = 0) {
+  SEXP tmp = getListElement(list, str);
+  if ( tmp == R_NilValue ) {
+    Rf_warning("Missing integer variable '%s'. Using default: %d. (Perhaps you are using a model object created with an old TMB version?)", str, default_value);
+    return default_value;
+  }
+  return INTEGER(tmp)[0];
 }
 #endif
 
@@ -988,16 +1017,16 @@ SEXP EvalADFunObjectTemplate(SEXP f, SEXP theta, SEXP control)
   int m=pf->Range();
   if(LENGTH(theta)!=n)Rf_error("Wrong parameter length.");
   // Do forwardsweep ?
-  int doforward=INTEGER(getListElement(control,"doforward"))[0];
+  int doforward = getListInteger(control, "doforward", 1);
   //R-index -> C-index
-  int rangecomponent=INTEGER(getListElement(control,"rangecomponent"))[0]-1;
+  int rangecomponent = getListInteger(control, "rangecomponent", 1) - 1;
   if(!((0<=rangecomponent)&(rangecomponent<=m-1)))
     Rf_error("Wrong range component.");
-  int order = INTEGER(getListElement(control,"order"))[0];
+  int order = getListInteger(control, "order");
   if((order!=0) & (order!=1) & (order!=2) & (order!=3))
     Rf_error("order can be 0, 1, 2 or 3");
-  int sparsitypattern=INTEGER(getListElement(control,"sparsitypattern"))[0];
-  int dumpstack=INTEGER(getListElement(control,"dumpstack"))[0];
+  int sparsitypattern = getListInteger(control, "sparsitypattern");
+  int dumpstack = getListInteger(control, "dumpstack");
   SEXP hessiancols; // Hessian columns
   PROTECT(hessiancols=getListElement(control,"hessiancols"));
   int ncols=Rf_length(hessiancols);
@@ -1088,7 +1117,7 @@ ADFun<double>* MakeADFunObject_(SEXP data, SEXP parameters,
 			       SEXP report, SEXP control, int parallel_region=-1,
 			       SEXP &info=R_NilValue)
 {
-  int returnReport = INTEGER(getListElement(control,"report"))[0];
+  int returnReport = getListInteger(control, "report");
   /* Create objective_function "dummy"-object */
   objective_function< AD<double> > F(data,parameters,report);
   F.set_parallel_region(parallel_region);
@@ -1138,7 +1167,7 @@ extern "C"
     if(!Rf_isNewList(parameters))Rf_error("'parameters' must be a list");
     if(!Rf_isEnvironment(report))Rf_error("'report' must be an environment");
     if(!Rf_isNewList(control))Rf_error("'control' must be a list");
-    int returnReport = INTEGER(getListElement(control,"report"))[0];
+    int returnReport = getListInteger(control, "report");
 
     /* Get the default parameter vector (tiny overhead) */
     SEXP par,res=NULL,info;
@@ -1318,8 +1347,8 @@ extern "C"
   SEXP EvalDoubleFunObject(SEXP f, SEXP theta, SEXP control)
   {
     TMB_TRY {
-      int do_simulate = INTEGER(getListElement(control, "do_simulate"))[0];
-      int get_reportdims = INTEGER(getListElement(control, "get_reportdims"))[0];
+      int do_simulate = getListInteger(control, "do_simulate");
+      int get_reportdims = getListInteger(control, "get_reportdims");
       objective_function<double>* pf;
       pf = (objective_function<double>*) R_ExternalPtrAddr(f);
       pf -> sync_data();
@@ -1621,15 +1650,21 @@ extern "C"
       TMB_ERROR_BAD_ALLOC;
     }
     parallelADFun<double>* tmp=new parallelADFun<double>(Hvec);
-    return asSEXP(tmp->convert(),"parallelADFun");
+    for(int i=0; i<n; i++) {
+      delete Hvec[i];
+    }
+    // Adds finalizer for 'tmp' !!! (so, don't delete tmp...)
+    SEXP ans = asSEXP(tmp->convert(),"parallelADFun");
+    return ans;
   } // MakeADHessObject2
 #else
   SEXP MakeADHessObject2(SEXP data, SEXP parameters, SEXP report, SEXP skip){
     sphess* pH = NULL;
+    SEXP ans;
     TMB_TRY {
       pH = new sphess( MakeADHessObject2_(data, parameters, report, skip, -1) );
       optimizeTape( pH->pf );
-      return asSEXP(*pH, "ADFun");
+      ans = asSEXP(*pH, "ADFun");
     }
     TMB_CATCH {
       if (pH != NULL) {
@@ -1638,6 +1673,8 @@ extern "C"
       }
       TMB_ERROR_BAD_ALLOC;
     }
+    delete pH;
+    return ans;
   } // MakeADHessObject2
 #endif
 }
