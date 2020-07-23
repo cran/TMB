@@ -1,7 +1,7 @@
-f73511e42f861f47cd82dd743a1d44aa *DESCRIPTION
-0b4bc7afd1ce798425442da7257d7419 *NAMESPACE
-714c9a4ab2fe384e07bd0bcac4b5f9c2 *NEWS
-5e43ac4336d3cfb1610661b7d0f64f7d *R/TMB.R
+54fe5e2ea8ec554c4000ce5a8ae0726b *DESCRIPTION
+8c38f2c7dac2ebd929da6dbf1b672197 *NAMESPACE
+d9d69921cbd48e2d129571ccf82f38cd *NEWS
+dba20800207c3e72b7d8eb9a79003cf5 *R/TMB.R
 e3dd37cda43d844c33b2e95ddefd590c *R/benchmark.R
 b13bd2999e96de8f2e6e224d4bdd998f *R/checker.R
 8a7c94a1000eae8707f78dc4e11675db *R/config.R
@@ -9,12 +9,12 @@ b13bd2999e96de8f2e6e224d4bdd998f *R/checker.R
 d93917ba1f56de0d023f75236fdcef3c *R/gdbsource.R
 b08518e792b35bf4fdb6cae5dcea4c78 *R/header_tool.R
 56a1295a4739058af563a19d03bc45d0 *R/normalize.R
-6a1a2efed7b2356b682b3a3727e51bd7 *R/sdreport.R
+f1287ea8bd335dd117378b415adc9264 *R/sdreport.R
 f0a8e9eeabfb6ba0886e510ffe17b1cf *R/setupRStudio.R
 1f313ec0f4ca4853458f79dbfb0737b1 *R/tmbprofile.R
 5acf0443a77a7785406444034c74a1a1 *R/tmbroot.R
 5ee9e1ccfa427fea7b9c9c4dea686aee *R/utils.R
-95529fa2e0182e7d2df09fb9d4c8c4d0 *R/validation.R
+9bb28a76b4f1594f49493e742e51eb46 *R/validation.R
 aa02f2eab7a57652a8bbc5aa373726e6 *R/zzz.R
 eb282d3bb0c3c979198c80bb8713b2aa *inst/CITATION
 24a129cdf0e26106e1c4f0fa86e1561a *inst/COPYRIGHTS
@@ -257,7 +257,7 @@ d69dcf21744dca401515265eb37300bb *inst/include/cppad/thread_alloc.hpp
 7cef522c193cae9e1147006eea80e24c *inst/include/expm.hpp
 426b135e048a69cc2486a23b943a406a *inst/include/lgamma.hpp
 d41d8cd98f00b204e9800998ecf8427e *inst/include/precompile.hpp
-bc5231e038f1666df07f6dc332d569c1 *inst/include/start_parallel.hpp
+71cdae16191f7781c245d1827ecfc522 *inst/include/start_parallel.hpp
 5191c3bd7a4028a62c5d8e67bec896e3 *inst/include/tiny_ad/atomic.hpp
 3abc7594697713ba497872af1d0151b3 *inst/include/tiny_ad/bessel/bessel.h
 87de899895555ee01fe6cea8bf615cce *inst/include/tiny_ad/bessel/bessel.hpp
@@ -293,7 +293,7 @@ d5bd4e8231b4d9e9c908d52437e4b963 *inst/include/tiny_ad/tiny_ad/tiny_valarray.hpp
 bed275688206d95b0fd155d5c6b1bc96 *inst/include/tiny_ad/tiny_ad/tiny_vec.hpp
 0617540fa31d0ff769c44e1383aa290b *inst/include/tiny_ad/tweedie/tweedie.cpp
 eedca7178e051927813e77735fe9747f *inst/include/tiny_ad/tweedie/tweedie.hpp
-18cbd56fce1f0298e13f1f557625a125 *inst/include/tmb_core.hpp
+ba25afe72587b074c43e8d37e0d90caa *inst/include/tmb_core.hpp
 896864fb1ea451068388ea287479682a *inst/include/tmbutils/R_inla.hpp
 426cf34cc21ce1a6c2ca7c46fb2ad446 *inst/include/tmbutils/array.hpp
 9839260ef17fafdf530bc16c800c1704 *inst/include/tmbutils/autodiff.hpp
@@ -308,7 +308,8 @@ e7be1be77ff4c334771b462114d6b52c *inst/include/tmbutils/tmbutils.hpp
 cc89017ec59a491a3dc7d8f287afbaf8 *inst/include/tmbutils/tmbutils_extra.hpp
 6f0c29c0d4d4c24d405ec46b6c1fd2ca *inst/include/tmbutils/vector.hpp
 cac34e6a00e1d301fadd4c4e5f4744d3 *inst/template.cpp
-c388ab7f833a1e0e916b0d8bcabd3fcd *man/MakeADFun.Rd
+8f164c98fc87052f94567beceaf26f39 *man/FreeADFun.Rd
+221e4e031d6db4df21ca68aaffd0c23d *man/MakeADFun.Rd
 c1890fbd90543617a3dd7a37c7a111d8 *man/Rinterface.Rd
 34a86ce50c73b59cc4bdb30169058536 *man/as.list.sdreport.Rd
 f503cbaeffee178f36b45a20a2fe13f4 *man/benchmark.Rd
@@ -321,7 +322,7 @@ bb279403622341fa8afdaff4020ea725 *man/gdbsource.Rd
 ae9232fba6f19c5e35f205e069947431 *man/newton.Rd
 2df5d692b73bc2abbdcef7aa31f2592a *man/newtonOption.Rd
 5d42b2ff227a31661ae04fcddd2ad9b2 *man/normalize.Rd
-7a57c3a2ab084bb74b73be51902fa837 *man/oneStepPredict.Rd
+0d675ed9bfcb82ed881d30142635eec1 *man/oneStepPredict.Rd
 0ebdd23974436f7df3b00aee48e6b49c *man/openmp.Rd
 c724052dd366049d54bdbdd8e23b12a4 *man/plot.tmbprofile.Rd
 3f11e6bc0d6b7dca506e28f3d2fda7a2 *man/precompile.Rd
@@ -329,7 +330,7 @@ c724052dd366049d54bdbdd8e23b12a4 *man/plot.tmbprofile.Rd
 3b5b5c89804a350f22a8633960d1a344 *man/print.sdreport.Rd
 f84512a1d371d7ccadd076e82281132f *man/runExample.Rd
 bb9feb042c215118410ac6b97c2d245a *man/runSymbolicAnalysis.Rd
-d2a20558fd67471208b1edd340bbcf39 *man/sdreport.Rd
+b1c88561b231c5353b17ff2dfb6e2c4a *man/sdreport.Rd
 06b97be5fa5240be0811e120593fbd7f *man/summary.checkConsistency.Rd
 be2a0e0173235fcaf164177b289f3ec1 *man/summary.sdreport.Rd
 9dd84471758f8d925c18d3744d72e71e *man/template.Rd
