@@ -1,6 +1,6 @@
-54fe5e2ea8ec554c4000ce5a8ae0726b *DESCRIPTION
+a25d4523293b781a2bec355703f3a47e *DESCRIPTION
 8c38f2c7dac2ebd929da6dbf1b672197 *NAMESPACE
-d9d69921cbd48e2d129571ccf82f38cd *NEWS
+dc12a6ca4712d778a8b41f3d4a84d1e7 *NEWS
 dba20800207c3e72b7d8eb9a79003cf5 *R/TMB.R
 e3dd37cda43d844c33b2e95ddefd590c *R/benchmark.R
 b13bd2999e96de8f2e6e224d4bdd998f *R/checker.R
@@ -293,7 +293,7 @@ d5bd4e8231b4d9e9c908d52437e4b963 *inst/include/tiny_ad/tiny_ad/tiny_valarray.hpp
 bed275688206d95b0fd155d5c6b1bc96 *inst/include/tiny_ad/tiny_ad/tiny_vec.hpp
 0617540fa31d0ff769c44e1383aa290b *inst/include/tiny_ad/tweedie/tweedie.cpp
 eedca7178e051927813e77735fe9747f *inst/include/tiny_ad/tweedie/tweedie.hpp
-ba25afe72587b074c43e8d37e0d90caa *inst/include/tmb_core.hpp
+31d9b402c12d068d52a0916b0039128b *inst/include/tmb_core.hpp
 896864fb1ea451068388ea287479682a *inst/include/tmbutils/R_inla.hpp
 426cf34cc21ce1a6c2ca7c46fb2ad446 *inst/include/tmbutils/array.hpp
 9839260ef17fafdf530bc16c800c1704 *inst/include/tmbutils/autodiff.hpp
