@@ -28,8 +28,8 @@ SEXP asSEXP(const matrix<Type> &a)
    SEXP val;
    PROTECT(val = Rf_allocMatrix(REALSXP, nr, nc));
    double *p = REAL(val);
-   for(R_xlen_t i=0; i<nr; i++)
-     for(R_xlen_t j=0; j<nc; j++)
+   for(R_xlen_t j=0; j<nc; j++)
+     for(R_xlen_t i=0; i<nr; i++)
        p[i + j * nr] = asDouble(a(i,j));
    UNPROTECT(1);
    return val;
@@ -118,9 +118,10 @@ matrix<Type> asMatrix(SEXP x)
    R_xlen_t nr = Rf_nrows(x); // nrows is int
    R_xlen_t nc = Rf_ncols(x); // ncols is int
    matrix<Type> y(nr, nc);
-   for(R_xlen_t i=0; i<nr; i++)
-     for(R_xlen_t j=0; j<nc; j++)
-       y(i, j) = Type(REAL(x)[i + nr * j]);
+   double *p = REAL(x);
+   for(R_xlen_t j=0; j<nc; j++)
+     for(R_xlen_t i=0; i<nr; i++)
+       y(i, j) = Type(p[i + nr * j]);
    return y;
 }
 

@@ -111,6 +111,20 @@ vector<Type> FUN( declare##Type1(arg1) comma##Type2			\
   GVECTORIZE(FUN,V,T,V,I,N,N)			\
   GVECTORIZE(FUN,V,V,V,I,N,N)
 
+/** \brief Vectorize 5-argument functions.
+
+    For Five-arguments functions (Type, Type, Type, Type, int),
+    vectorize first four arguments.
+*/
+#define VECTORIZE5_tttti(FUN)			\
+  GVECTORIZE(FUN,V,T,T,T,I,N)			\
+  GVECTORIZE(FUN,T,V,T,T,I,N)			\
+  GVECTORIZE(FUN,T,T,V,T,I,N)			\
+  GVECTORIZE(FUN,V,V,T,T,I,N)			\
+  GVECTORIZE(FUN,T,V,V,T,I,N)			\
+  GVECTORIZE(FUN,V,T,V,T,I,N)			\
+  GVECTORIZE(FUN,V,V,V,T,I,N)
+
 /** \brief Vectorize 6-argument functions.
 
     For Six-arguments functions (Type, Type, Type, Type, Type, int),
@@ -143,6 +157,16 @@ vector<Type> FUN(int n, Type arg1, Type arg2) {         \
   vector<Type> ans(n);                                  \
   for(int i=0; i<n; i++) ans(i) = FUN(arg1, arg2);      \
   return ans;                                           \
+}
+
+/** \brief Add the 'n' integer argument to a simulation method with
+    three arguments */
+#define VECTORIZE3_n(FUN)                                       \
+template<class Type>                                            \
+vector<Type> FUN(int n, Type arg1, Type arg2, Type arg3) {      \
+  vector<Type> ans(n);                                          \
+  for(int i=0; i<n; i++) ans(i) = FUN(arg1, arg2, arg3);        \
+  return ans;                                                   \
 }
 
 using CppAD::abs;

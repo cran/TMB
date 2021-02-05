@@ -562,6 +562,7 @@ Type dtweedie(Type y, Type mu, Type phi, Type p, int give_log = 0) {
   }
   return ( give_log ? ans : exp(ans) );
 }
+VECTORIZE5_tttti(dtweedie)
 
 
 /** \brief Conway-Maxwell-Poisson log normalizing constant.
@@ -815,3 +816,17 @@ vector<Type> rcompois2(int n, Type mean, Type nu)
   Type mode = exp(loglambda / nu);
   return rcompois(n, mode, nu);
 }
+
+/** \brief Simulate from tweedie distribution */
+template<class Type>
+Type rtweedie(Type mu, Type phi, Type p) {
+  // Copied from R function tweedie::rtweedie
+  Type lambda = pow(mu, 2. - p) / (phi * (2. - p));
+  Type alpha  = (2. - p) / (1. - p);
+  Type gam = phi * (p - 1.) * pow(mu, p - 1.);
+  Type N = rpois(lambda);
+  Type ans = rgamma( -alpha * N /* shape */, gam /* scale */);
+  return ans;
+}
+VECTORIZE3_ttt(rtweedie)
+VECTORIZE3_n(rtweedie)
