@@ -1,7 +1,7 @@
-5f6a3b65293788ee3d4696060321f7e5 *DESCRIPTION
+3fa2493627894b4bc20a703325b7776f *DESCRIPTION
 8c38f2c7dac2ebd929da6dbf1b672197 *NAMESPACE
-8579e77bd47bb7dcdd878a8c077539a3 *NEWS
-f42740221ef98a4ffbaaf7b089868e40 *R/TMB.R
+17bd0b31ba5019417c60d0a165d59289 *NEWS
+b9ae1fe43c4d3b959c417b8544c816ef *R/TMB.R
 e3dd37cda43d844c33b2e95ddefd590c *R/benchmark.R
 b13bd2999e96de8f2e6e224d4bdd998f *R/checker.R
 8a7c94a1000eae8707f78dc4e11675db *R/config.R
@@ -288,7 +288,7 @@ e134dcdf5fa724b5c1d1dbdd03e4a910 *inst/include/tiny_ad/gamma/lgammacor.cpp
 9319082a3bafaf97898d098d0a9a7605 *inst/include/tiny_ad/integrate/integrate.hpp
 7bd545fd915b0f2cd600020eed5759ac *inst/include/tiny_ad/mask.hpp
 bac55137b4e3a7a39ec2781f5357cc5c *inst/include/tiny_ad/robust/distributions.hpp
-75a6b13c443a7ac30843ccb432fd5892 *inst/include/tiny_ad/tiny_ad/tiny_ad.hpp
+6adb743e17fbb4f52995536445a3f0d5 *inst/include/tiny_ad/tiny_ad/tiny_ad.hpp
 d5bd4e8231b4d9e9c908d52437e4b963 *inst/include/tiny_ad/tiny_ad/tiny_valarray.hpp
 bed275688206d95b0fd155d5c6b1bc96 *inst/include/tiny_ad/tiny_ad/tiny_vec.hpp
 0617540fa31d0ff769c44e1383aa290b *inst/include/tiny_ad/tweedie/tweedie.cpp
@@ -341,5 +341,5 @@ c29b28480a5bee583f9900da5d0adbbf *src/Makevars
 9f70a2b801f5104700c757e28934ab5c *src/external_metis.c
 fe9f47a00e1b58a41bf38fca85cad732 *src/init.c
 befc9fe6d7fd47dbd1e1964357f17a0b *src/local_stubs.c
-0f76a06f8c7057a3a9f4df9acdcc7c66 *src/solve_subset.c
+94e04b8ac5d8e3858f72a046039cebf0 *src/solve_subset.c
 ed102945b008738a832d859df2c3a630 *src/utils.c
