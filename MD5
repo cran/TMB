@@ -1,6 +1,6 @@
-ad96147fd31eb229621ab5c3f4146b2d *DESCRIPTION
+b2962db14e5f61c79787beada40b7844 *DESCRIPTION
 8c38f2c7dac2ebd929da6dbf1b672197 *NAMESPACE
-1b1cd93983f9e8bb55b9492173e7be90 *NEWS
+af0bbb1624a3bea985763cf0a3e04a1a *NEWS
 b9ae1fe43c4d3b959c417b8544c816ef *R/TMB.R
 e3dd37cda43d844c33b2e95ddefd590c *R/benchmark.R
 b13bd2999e96de8f2e6e224d4bdd998f *R/checker.R
@@ -15,7 +15,7 @@ b88016bda76436008d5c09d56ebfb575 *R/tmbprofile.R
 34f335bfe3adb0536565aa747f241ca9 *R/tmbroot.R
 5ee9e1ccfa427fea7b9c9c4dea686aee *R/utils.R
 9bb28a76b4f1594f49493e742e51eb46 *R/validation.R
-aa02f2eab7a57652a8bbc5aa373726e6 *R/zzz.R
+40b81b131f471c6ab75946af94b4025c *R/zzz.R
 eb282d3bb0c3c979198c80bb8713b2aa *inst/CITATION
 24a129cdf0e26106e1c4f0fa86e1561a *inst/COPYRIGHTS
 be8e72009af7b2c27b1aec05c34c67be *inst/examples/ar1xar1.R
@@ -295,7 +295,7 @@ bed275688206d95b0fd155d5c6b1bc96 *inst/include/tiny_ad/tiny_ad/tiny_vec.hpp
 65aa74eb2b6c7aea9a23753325879929 *inst/include/tiny_ad/tweedie/tweedie.hpp
 8a0e4443bd8ca04ddf0ff00f36ebe74b *inst/include/tmb_core.hpp
 896864fb1ea451068388ea287479682a *inst/include/tmbutils/R_inla.hpp
-426cf34cc21ce1a6c2ca7c46fb2ad446 *inst/include/tmbutils/array.hpp
+a033a5cedea4b808637d71b5960c859b *inst/include/tmbutils/array.hpp
 9839260ef17fafdf530bc16c800c1704 *inst/include/tmbutils/autodiff.hpp
 e8aff574b790027b96c6b94c6ba30e25 *inst/include/tmbutils/density.hpp
 87b3a565c3b9019921e1878688d1383d *inst/include/tmbutils/kronecker.hpp
@@ -341,5 +341,5 @@ c29b28480a5bee583f9900da5d0adbbf *src/Makevars
 9f70a2b801f5104700c757e28934ab5c *src/external_metis.c
 fe9f47a00e1b58a41bf38fca85cad732 *src/init.c
 befc9fe6d7fd47dbd1e1964357f17a0b *src/local_stubs.c
-94e04b8ac5d8e3858f72a046039cebf0 *src/solve_subset.c
+85a380e22a70a3dc3b442f34c1041b6a *src/solve_subset.c
 49030ef72eb1395af7c71a40d1d256d9 *src/utils.c
