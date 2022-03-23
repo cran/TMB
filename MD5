@@ -1,6 +1,6 @@
-9d645033a041a4872a0ac535ff7e2f0c *DESCRIPTION
+630ead7e641855f4589e21ed52d53390 *DESCRIPTION
 d2e4c3d33257334177560322d2eee65a *NAMESPACE
-84227407ba3d2347829c4802395553e7 *NEWS
+78214c88ca30d22006544c0e9c8e3f8f *NEWS
 d11a4a36bff22dd8eca10c8abd802d84 *R/TMB.R
 0a8a19e6bc5dd48d053735256258e36a *R/benchmark.R
 b13bd2999e96de8f2e6e224d4bdd998f *R/checker.R
@@ -125,7 +125,7 @@ ded869d847310cc2adc32c112e88ac3c *inst/include/cppad/local/color_symmetric.hpp
 454520445e2ef19ca202049ebe5d9c9a *inst/include/cppad/local/comp_op.hpp
 0c41bac89f01efad961e2464e3bccc2b *inst/include/cppad/local/compare.hpp
 8cf6457c761b01577c405c13891f08fa *inst/include/cppad/local/compute_assign.hpp
-fa165daf260ecf9eef61992106148c1e *inst/include/cppad/local/cond_exp.hpp
+d703c3aa965322762a5d6b494eea52be *inst/include/cppad/local/cond_exp.hpp
 4c765797a5187daa23eedba40f3ed4d4 *inst/include/cppad/local/cond_op.hpp
 ac24ca67731cca9aff7432c481f32c84 *inst/include/cppad/local/config.h.in
 f968c675c2b750101b0cc885308431bf *inst/include/cppad/local/convert.hpp
@@ -163,7 +163,7 @@ c92cc9ca499cc00ca4e58ec9684b5c18 *inst/include/cppad/local/fun_construct.hpp
 06f54f960c97c710e0d46ee8e917ea70 *inst/include/cppad/local/fun_eval.hpp
 77407c03bc58cfb90f02769132b79663 *inst/include/cppad/local/hash_code.hpp
 91b1555e4bd4a8e66580e089b065f680 *inst/include/cppad/local/hessian.hpp
-57b520df6c46d5df65922aa753addd6a *inst/include/cppad/local/identical.hpp
+c9b5310bb9f48a7456cdc041d59ff0f3 *inst/include/cppad/local/identical.hpp
 e6e7b9aedc7578b1ab267722f9a66eea *inst/include/cppad/local/independent.hpp
 1ab79299fd1800d9edd749fc1d705c78 *inst/include/cppad/local/integer.hpp
 e0479bd04e2f5a9c7aa5d2cf1ded78f3 *inst/include/cppad/local/jacobian.hpp
@@ -183,7 +183,7 @@ ed7b9f14822bd934175b6106ab05c761 *inst/include/cppad/local/near_equal_ext.hpp
 e7151e209f184859ff318fae3d367bfd *inst/include/cppad/local/op.hpp
 66e9c7d0f34e897397ab4960074f64e5 *inst/include/cppad/local/op_code.hpp
 113f2fe796cc5317fb15d913cd8a1a2b *inst/include/cppad/local/opt_val_hes.hpp
-d49a0e2c50af6df0794efdb6fe17da6b *inst/include/cppad/local/optimize.hpp
+71e5e0328a06564cb2229a0f12174a82 *inst/include/cppad/local/optimize.hpp
 2d129dae34c7a475880068792f4a6ad0 *inst/include/cppad/local/ordered.hpp
 341b2e6b6c1747631f8728f4211c1545 *inst/include/cppad/local/par_var.hpp
 b378cd0a66097439c0c2357f1f6e543a *inst/include/cppad/local/parallel_ad.hpp
@@ -309,7 +309,7 @@ d5bd4e8231b4d9e9c908d52437e4b963 *inst/include/tiny_ad/tiny_ad/tiny_valarray.hpp
 bed275688206d95b0fd155d5c6b1bc96 *inst/include/tiny_ad/tiny_ad/tiny_vec.hpp
 853a7fd53f415c14481bf8263b53fc2e *inst/include/tiny_ad/tweedie/tweedie.cpp
 65aa74eb2b6c7aea9a23753325879929 *inst/include/tiny_ad/tweedie/tweedie.hpp
-f8fd19827664572269ddd14e976370de *inst/include/tmb_core.hpp
+16f7af72c300230f8b685cfdf22b0228 *inst/include/tmb_core.hpp
 e31a6c55dc45889523bc1aed9094da64 *inst/include/tmbad_atomic_macro.hpp
 896864fb1ea451068388ea287479682a *inst/include/tmbutils/R_inla.hpp
 a033a5cedea4b808637d71b5960c859b *inst/include/tmbutils/array.hpp
