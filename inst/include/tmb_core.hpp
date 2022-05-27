@@ -415,14 +415,18 @@ struct<Type> name(getListElement(TMB_OBJECTIVE_PTR -> data, #name));
     \tparam VT Can be **vector<Type>** or **array<Type>**
     \warning When extracting subsets of a `data_indicator` note that in general the subset is not applied to `cdf_lower` and `cdf_upper`.
 */
-template<class VT, class Type>
+template<class VT, class Type = typename VT::Scalar>
 struct data_indicator : VT{
   /** \brief **Logarithm** of lower CDF */
   VT cdf_lower;
   /** \brief **Logarithm** of upper CDF */
   VT cdf_upper;
+  /** \brief Subset argument (zero-based) passed from oneStepPredict. See `data_indicator::order()`. */
+  vector<int> ord;
+  /** \brief Flag to tell if OSA calculation is active. See `data_indicator::osa_active()`. */
+  bool osa_flag;
   /** \brief Default CTOR */
-  data_indicator() { }
+  data_indicator() { osa_flag = false; }
   /** \brief Construct from observation vector
       \param obs Observation vector or array
       \param init_one If true the data_indicator will be filled with ones signifying that all observations should be enabled.
@@ -432,13 +436,20 @@ struct data_indicator : VT{
     if (init_one) VT::fill(Type(1.0));
     cdf_lower = obs; cdf_lower.setZero();
     cdf_upper = obs; cdf_upper.setZero();
+    osa_flag = false;
   }
   /** \brief Fill with parameter vector */
-  void fill(vector<Type> p){
+  void fill(vector<Type> p, SEXP ord_){
     int n = (*this).size();
     if(p.size() >= n  ) VT::operator=(p.segment(0, n));
     if(p.size() >= 2*n) cdf_lower = p.segment(n, n);
     if(p.size() >= 3*n) cdf_upper = p.segment(2 * n, n);
+    if(!Rf_isNull(ord_)) {
+      this->ord = asVector<int>(ord_);
+    }
+    for (int i=0; i<p.size(); i++) {
+      osa_flag |= CppAD::Variable(p[i]);
+    }
   }
   /** \brief Extract segment of indicator vector or array
       \note For this method the segment **is** applied to `cdf_lower` and `cdf_upper`. */
@@ -446,8 +457,35 @@ struct data_indicator : VT{
     data_indicator ans ( VT::segment(pos, n) );
     ans.cdf_lower = cdf_lower.segment(pos, n);
     ans.cdf_upper = cdf_upper.segment(pos, n);
+    if (ord.size() != 0) {
+      ans.ord = ord.segment(pos, n);
+    }
+    ans.osa_flag = osa_flag;
     return ans;
   }
+  /** \brief Get order in which the one step conditionals will be requested by oneStepPredict */
+  vector<int> order() {
+    int n = this->size();
+    vector<int> ans(n);
+    if (ord.size() == 0) {
+      for (int i=0; i<n; i++)
+        ans(i) = i;
+    } else {
+      if (ord.size() != n) Rf_error("Unexpected 'ord.size() != n'");
+      std::vector<std::pair<int, int> > y(n);
+      for (int i=0; i<n; i++) {
+        y[i].first = ord[i];
+        y[i].second = i;
+      }
+      std::sort(y.begin(), y.end()); // sort inplace
+      for (int i=0; i<n; i++) {
+        ans[i] = y[i].second;
+      }
+    }
+    return ans;
+  }
+  /** \brief Are we inside a oneStepPredict calculation? */
+  bool osa_active() { return osa_flag; }
 };
 
 /** \brief Declare an indicator array 'name' of same shape as 'obs'. By default, the indicator array is filled with ones indicating that all observations are enabled.
@@ -456,11 +494,14 @@ struct data_indicator : VT{
     ?oneStepPredict
     \ingroup macros */
 #define DATA_ARRAY_INDICATOR(name, obs)                                 \
-data_indicator<tmbutils::array<Type>, Type > name(obs, true);           \
+data_indicator<tmbutils::array<Type> > name(obs, true);                 \
 if (!Rf_isNull(getListElement(TMB_OBJECTIVE_PTR -> parameters,#name))){ \
   name.fill( TMB_OBJECTIVE_PTR -> fillShape(asVector<Type>(             \
              TMB_OBJECTIVE_PTR -> getShape(#name, &Rf_isNumeric)),      \
-                                           #name) );                    \
+                                           #name),                      \
+             Rf_getAttrib(                                              \
+                TMB_OBJECTIVE_PTR -> getShape(#name, &Rf_isNumeric),    \
+                Rf_install("ord")) );                                   \
 }
 
 /** \brief Declare an indicator vector 'name' of same shape as 'obs'. By default, the indicator vector is filled with ones indicating that all observations are enabled.
@@ -469,11 +510,14 @@ if (!Rf_isNull(getListElement(TMB_OBJECTIVE_PTR -> parameters,#name))){ \
     ?oneStepPredict
     \ingroup macros */
 #define DATA_VECTOR_INDICATOR(name, obs)                                \
-data_indicator<tmbutils::vector<Type>, Type > name(obs, true);          \
+data_indicator<tmbutils::vector<Type> > name(obs, true);                \
 if (!Rf_isNull(getListElement(TMB_OBJECTIVE_PTR -> parameters,#name))){ \
   name.fill( TMB_OBJECTIVE_PTR -> fillShape(asVector<Type>(             \
              TMB_OBJECTIVE_PTR -> getShape(#name, &Rf_isNumeric)),      \
-                                           #name) );                    \
+                                           #name),                      \
+             Rf_getAttrib(                                              \
+                TMB_OBJECTIVE_PTR -> getShape(#name, &Rf_isNumeric),    \
+                Rf_install("ord")) );                                   \
 }
 
 // kasper: Not sure used anywhere
@@ -623,11 +667,11 @@ public:
   int current_parallel_region;       /* Identifier of a code-fragment of user template */
   int selected_parallel_region;      /* Consider _this_ code-fragment */
   int max_parallel_regions;          /* Max number of parallel region identifiers,
-				        e.g. max_parallel_regions=omp_get_max_threads(); 
+				        e.g. max_parallel_regions=config.nthreads;
 				        probably best in most cases. */
   bool parallel_region(){            /* Is this the selected parallel region ? */
     bool ans;
-    if(current_parallel_region<0 || selected_parallel_region<0)return true; /* Serial mode */
+    if(config.autopar || current_parallel_region<0 || selected_parallel_region<0)return true; /* Serial mode */
     ans = (selected_parallel_region==current_parallel_region) && (!parallel_ignore_statements);
     current_parallel_region++;
     if(max_parallel_regions>0)current_parallel_region=current_parallel_region % max_parallel_regions;
@@ -639,6 +683,7 @@ public:
     selected_parallel_region=0;
     parallel_ignore_statements=true; /* Do not evaluate stuff inside PARALLEL_REGION{...} */
     this->operator()();              /* Run through users code */
+    if (config.autopar) return 0;
     if(max_parallel_regions>0)return max_parallel_regions;
     else
     return current_parallel_region;
@@ -685,6 +730,9 @@ public:
     current_parallel_region=-1;
     selected_parallel_region=-1;
     max_parallel_regions=-1;
+#ifdef _OPENMP
+      max_parallel_regions = config.nthreads;
+#endif
     reversefill=false;
     do_simulate = false;
     GetRNGstate(); /* Read random seed from R. Note: by default we do
@@ -891,7 +939,7 @@ struct parallel_accumulator{
     result=Type(0);
     obj=obj_;
 #ifdef _OPENMP
-    obj->max_parallel_regions=omp_get_max_threads();
+    obj->max_parallel_regions=config.nthreads;
 #endif
   }
   inline void operator+=(Type x){
@@ -1311,7 +1359,7 @@ extern "C"
       start_parallel(); /* FIXME: NOT NEEDED */
       vector< adfun* > pfvec(n);
       bool bad_thread_alloc = false;
-#pragma omp parallel for if (config.tape.parallel && n>1)
+#pragma omp parallel for num_threads(config.nthreads) if (config.tape.parallel && n>1)
       for(int i = 0; i < n; i++) {
         TMB_TRY {
           pfvec[i] = NULL;
@@ -1394,7 +1442,7 @@ extern "C"
       start_parallel(); /* Start threads */
       vector< ADFun<double>* > pfvec(n);
       bool bad_thread_alloc = false;
-#pragma omp parallel for if (config.tape.parallel && n>1)
+#pragma omp parallel for num_threads(config.nthreads) if (config.tape.parallel && n>1)
       for(int i=0;i<n;i++){
 	TMB_TRY {
 	  pfvec[i] = NULL;
@@ -1614,13 +1662,20 @@ SEXP TransformADFunObject(SEXP f, SEXP control)
       }
       adfun* pf = (ppf->vecpf)[0]; // One tape - get it
       std::vector<adfun> vf = pf->parallel_accumulate(num_threads);
+      if (config.trace.parallel) {
+        Rcout << "Autopar work split\n";
+        for (size_t i=0; i < vf.size(); i++) {
+          Rcout << "Chunk " << i << ": ";
+          Rcout << (double) vf[i].glob.opstack.size() / pf->glob.opstack.size() << "\n";
+        }
+      }
       parallelADFun<double>* new_ppf = new parallelADFun<double>(vf);
       delete ppf;
       R_SetExternalPtrAddr(f, new_ppf);
       return R_NilValue;
     }
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel for num_threads(config.nthreads)
 #endif
     for (int i=0; i<ppf->ntapes; i++) {
       adfun* pf = (ppf->vecpf)[i];
@@ -2063,7 +2118,7 @@ extern "C"
       start_parallel(); /* Start threads */
       vector< adfun* > pfvec(n);
       bool bad_thread_alloc = false;
-#pragma omp parallel for if (config.tape.parallel && n>1)
+#pragma omp parallel for num_threads(config.nthreads) if (config.tape.parallel && n>1)
       for(int i=0;i<n;i++){
 	TMB_TRY {
 	  pfvec[i] = NULL;
@@ -2133,7 +2188,7 @@ extern "C"
       start_parallel(); /* Start threads */
       vector< ADFun<double>* > pfvec(n);
       bool bad_thread_alloc = false;
-#pragma omp parallel for if (config.tape.parallel && n>1)
+#pragma omp parallel for num_threads(config.nthreads) if (config.tape.parallel && n>1)
       for(int i=0;i<n;i++){
 	TMB_TRY {
 	  pfvec[i] = NULL;
@@ -2367,7 +2422,7 @@ extern "C"
     /* parallel test */
     bool bad_thread_alloc = false;
     vector<sphess*> Hvec(n);
-#pragma omp parallel for if (config.tape.parallel && n>1)
+#pragma omp parallel for num_threads(config.nthreads) if (config.tape.parallel && n>1)
     for (int i=0; i<n; i++) {
       TMB_TRY {
 	Hvec[i] = NULL;
@@ -2429,7 +2484,7 @@ extern "C"
     /* parallel test */
     bool bad_thread_alloc = false;
     vector<sphess*> Hvec(n);
-#pragma omp parallel for if (config.tape.parallel && n>1)
+#pragma omp parallel for num_threads(config.nthreads) if (config.tape.parallel && n>1)
     for (int i=0; i<n; i++) {
       TMB_TRY {
 	Hvec[i] = NULL;
@@ -2502,8 +2557,8 @@ extern "C"
 #endif
 
   SEXP getFramework() {
+    // ans
     SEXP ans;
-    PROTECT(ans = R_NilValue);
 #ifdef TMBAD_FRAMEWORK
     ans = mkString("TMBad");
 #elif defined(CPPAD_FRAMEWORK)
@@ -2511,15 +2566,19 @@ extern "C"
 #else
     ans = mkString("Unknown");
 #endif
-    SEXP openmp_sym, openmp_res;
-    PROTECT(openmp_sym = R_NilValue);
-    PROTECT(openmp_res = R_NilValue);
-    openmp_sym = Rf_install("openmp");
+    PROTECT(ans);
+    // openmp_sym (Not strictly necessary to PROTECT)
+    SEXP openmp_sym = Rf_install("openmp");
+    PROTECT(openmp_sym);
+    // openmp_res
+    SEXP openmp_res;
 #ifdef _OPENMP
     openmp_res = ScalarLogical(1);
 #else
     openmp_res = ScalarLogical(0);
 #endif
+    PROTECT(openmp_res);
+    // Assemble
     Rf_setAttrib(ans, openmp_sym, openmp_res);
     UNPROTECT(3);
     return ans;

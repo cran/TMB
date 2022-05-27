@@ -19,16 +19,16 @@ struct isDouble<double>{
 
 /* Conditionally skip compilation */
 #ifdef WITH_LIBTMB
-#define CSKIP(x) ;
+#define CSKIP(...) ;
 #define TMB_EXTERN extern
 #else
-#define CSKIP(x) x
+#define CSKIP(...) __VA_ARGS__
 #define TMB_EXTERN
 #endif
 #ifdef TMB_PRECOMPILE
-#define IF_TMB_PRECOMPILE(x) x
+#define IF_TMB_PRECOMPILE(...) __VA_ARGS__
 #else
-#define IF_TMB_PRECOMPILE(x)
+#define IF_TMB_PRECOMPILE(...)
 #endif
 
 /* Must come before Rinternals.h */
@@ -51,9 +51,20 @@ void eigen_REprintf(const char* x);
                                   eigen_REprintf("\nPlease check your matrix-vector bounds etc., "); \
                                   eigen_REprintf("or run your program through a debugger.\n");       \
 				  abort();}
+#define TMBAD_ASSERT2(x,msg)                                            \
+if (!(x)) {                                                             \
+  Rcerr << "TMBad assertion failed.\n";                                 \
+  Rcerr << "The following condition was not met: " << #x << "\n";       \
+  Rcerr << "Possible reason: " msg << "\n";                             \
+  Rcerr << "For more info run your program through a debugger.\n";      \
+  abort();                                                              \
+}
+#define TMBAD_ASSERT(x) TMBAD_ASSERT2(x,"Unknown")
 #else
 #undef NDEBUG
 #define NDEBUG 1
+#define TMBAD_ASSERT2(x,msg) (void) (x);
+#define TMBAD_ASSERT(x) (void) (x);
 #endif
 /* Provide access to file 'DisableStupidWarnings.h' which has been
    patched by RcppEigen to satisfy CRAN policy. This file may need
@@ -192,5 +203,7 @@ using Eigen::Matrix;
 using Eigen::Array;
 
 /* Cleanup  */
-#undef CSKIP        // Nothing more to precompile. Must disable
-#define CSKIP(x) x  // to not confuse REGISTER_ATOMIC etc.
+
+// Nothing more to precompile
+#undef CSKIP
+#define CSKIP(...) __VA_ARGS__

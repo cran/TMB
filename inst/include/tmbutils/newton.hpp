@@ -166,8 +166,8 @@ struct HessianSolveVector : TMBad::global::DynamicOperator< -1, -1 > {
     }
   }
   template<class T>
-  void forward(TMBad::ForwardArgs<T> &args) { ASSERT(false); }
-  void reverse(TMBad::ReverseArgs<TMBad::Writer> &args) { ASSERT(false); }
+  void forward(TMBad::ForwardArgs<T> &args) { TMBAD_ASSERT(false); }
+  void reverse(TMBad::ReverseArgs<TMBad::Writer> &args) { TMBAD_ASSERT(false); }
   const char* op_name() { return "JSolve"; }
 };
 
@@ -450,6 +450,7 @@ TMBad::Scalar Tag(const TMBad::Scalar &x) CSKIP( {
     det(H + G * H0 * G^T) = det(H) * det(H0M)
     ```
 */
+template<class dummy=void>
 struct jacobian_sparse_plus_lowrank_t {
   // The three tapes
   std::shared_ptr<jacobian_sparse_t<> > H;
@@ -565,7 +566,7 @@ struct jacobian_sparse_plus_lowrank_t {
     return y1 - y2;
   }
   template<class T>
-  vector<T> solve(std::shared_ptr<jacobian_sparse_plus_lowrank_t> ptr,
+  vector<T> solve(std::shared_ptr<jacobian_sparse_plus_lowrank_t<> > ptr,
                   const vector<T> &hvec,
                   const vector<T> &xvec) {
     using atomic::matmul;
@@ -607,7 +608,7 @@ struct jacobian_sparse_plus_lowrank_t {
   }
   // Helper to get determinant: det(H)*det(H0)*det(M)
   template<class T>
-  tmbutils::matrix<T> getH0M(std::shared_ptr<jacobian_sparse_plus_lowrank_t> ptr,
+  tmbutils::matrix<T> getH0M(std::shared_ptr<jacobian_sparse_plus_lowrank_t<> > ptr,
                              const sparse_plus_lowrank<T> &h) {
     vector<T> s =
       HessianSolveVector<jacobian_sparse_t<> >(ptr -> H,
@@ -789,7 +790,7 @@ struct NewtonOperator : TMBad::global::SharedDynamicOperator {
     }
     // The previous operation does not change the domain vector size.
     size_t n_inner = function.Domain();
-    ASSERT(n_inner == (size_t) start.size());
+    TMBAD_ASSERT(n_inner == (size_t) start.size());
     // Turn remaining references to parent contexts into outer
     // parameters. This operation increases function.Domain()
     par_outer = function.resolve_refs();
@@ -812,7 +813,7 @@ struct NewtonOperator : TMBad::global::SharedDynamicOperator {
 	gradient.DomainReduce(active);
 	std::vector<bool> active_outer(active.begin() + n_inner, active.end());
 	par_outer = TMBad::subset(par_outer, active_outer);
-	ASSERT(n_inner == (size_t) function.inner_inv_index.size());
+	TMBAD_ASSERT(n_inner == (size_t) function.inner_inv_index.size());
 	function.optimize();
       }
     }
@@ -1028,8 +1029,8 @@ struct NewtonOperator : TMBad::global::SharedDynamicOperator {
     args.dx_segment(0, n) += g.tail(n);
   }
   template<class T>
-  void forward(TMBad::ForwardArgs<T> &args) { ASSERT(false); }
-  void reverse(TMBad::ReverseArgs<TMBad::Writer> &args) { ASSERT(false); }
+  void forward(TMBad::ForwardArgs<T> &args) { TMBAD_ASSERT(false); }
+  void reverse(TMBad::ReverseArgs<TMBad::Writer> &args) { TMBAD_ASSERT(false); }
   const char* op_name() { return "Newton"; }
   void print(TMBad::global::print_config cfg) {
     Rcout << cfg.prefix << "======== function:\n";
@@ -1101,8 +1102,8 @@ struct InvSubOperator : TMBad::global::SharedDynamicOperator {
     Rf_error("Inverse subset: order 2 not yet implemented (try changing config())");
   }
   template<class T>
-  void forward(TMBad::ForwardArgs<T> &args) { ASSERT(false); }
-  void reverse(TMBad::ReverseArgs<TMBad::Writer> &args) { ASSERT(false); }
+  void forward(TMBad::ForwardArgs<T> &args) { TMBAD_ASSERT(false); }
+  void reverse(TMBad::ReverseArgs<TMBad::Writer> &args) { TMBAD_ASSERT(false); }
   const char* op_name() { return "InvSub"; }
 };
 template<class Factorization=DEFAULT_SPARSE_FACTORIZATION >
@@ -1153,8 +1154,8 @@ struct LogDetOperator : TMBad::global::SharedDynamicOperator {
     args.dx_segment(0, n) += ih.valuePtr();
   }
   template<class T>
-  void forward(TMBad::ForwardArgs<T> &args) { ASSERT(false); }
-  void reverse(TMBad::ReverseArgs<TMBad::Writer> &args) { ASSERT(false); }
+  void forward(TMBad::ForwardArgs<T> &args) { TMBAD_ASSERT(false); }
+  void reverse(TMBad::ReverseArgs<TMBad::Writer> &args) { TMBAD_ASSERT(false); }
   const char* op_name() { return "logDet"; }
 };
 template<class Type>
@@ -1207,8 +1208,8 @@ Type log_determinant(const matrix<Type> &H, PTR ptr) {
   return atomic::logdet(tmbutils::matrix<Type>(H));
 }
 template<class Type>
-Type log_determinant(const jacobian_sparse_plus_lowrank_t::sparse_plus_lowrank<Type> &H,
-                     std::shared_ptr<jacobian_sparse_plus_lowrank_t> ptr) {
+Type log_determinant(const jacobian_sparse_plus_lowrank_t<>::sparse_plus_lowrank<Type> &H,
+                     std::shared_ptr<jacobian_sparse_plus_lowrank_t<> > ptr) {
   matrix<Type> H0M = (ptr -> getH0M(ptr, H)).array();
   return
     log_determinant(H.H, ptr->H) +
@@ -1232,7 +1233,7 @@ template<class Type>
 struct unsafe_cast : TMBad::ad_aug {
   unsafe_cast(TMBad::ad_aug x) : TMBad::ad_aug(x) {}
   operator Type() {
-    ASSERT2(this->constant(),
+    TMBAD_ASSERT2(this->constant(),
             "Invalid cast from ad_aug to double?");
     return this->Value();
   }
@@ -1304,11 +1305,11 @@ NewtonSolver<Functor,
 template<class Functor, class Type>
 NewtonSolver<Functor,
              Type,
-             jacobian_sparse_plus_lowrank_t> NewtonSparsePlusLowrank(
+             jacobian_sparse_plus_lowrank_t<> > NewtonSparsePlusLowrank(
                                                                      Functor &F,
                                                                      Eigen::Array<Type, Eigen::Dynamic, 1> start,
                                                                      newton_config cfg = newton_config() ) {
-  NewtonSolver<Functor, Type, jacobian_sparse_plus_lowrank_t > ans(F, start, cfg);
+  NewtonSolver<Functor, Type, jacobian_sparse_plus_lowrank_t<> > ans(F, start, cfg);
   return ans;
 }
 
@@ -1381,7 +1382,7 @@ struct slice {
         //std::vector<TMBad::ad_aug> x,
         std::vector<TMBad::Index> random) :
     F(F), random(random) {
-    ASSERT2(F.Range() == 1,
+    TMBAD_ASSERT2(F.Range() == 1,
             "Laplace approximation is for scalar valued functions");
   }
   typedef TMBad::ad_aug T;

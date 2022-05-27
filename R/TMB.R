@@ -71,6 +71,7 @@ isNullPointer <- function(pointer) {
 
 ## Add external pointer finalizer
 registerFinalizer <- function(ADFun, DLL) {
+    if (is.null(ADFun)) return (NULL) ## ADFun=NULL used by sdreport
     ADFun$DLL <- DLL
     finalizer <- function(ptr) {
         if ( ! isNullPointer(ptr) ) {
@@ -228,7 +229,6 @@ parseIntegrate <- function(arg, name) {
 ##' @param silent Disable all tracing information?
 ##' @param intern Do Laplace approximation on C++ side ? See details (Experimental - may change without notice)
 ##' @param integrate Specify alternative integration method(s) for random effects (see details)
-##' @param autopar Enable automatic parallization? (Experimental)
 ##' @param ... Currently unused.
 ##' @return List with components (fn, gr, etc) suitable for calling an R optimizer, such as \code{nlminb} or \code{optim}.
 MakeADFun <- function(data, parameters, map=list(),
@@ -249,8 +249,11 @@ MakeADFun <- function(data, parameters, map=list(),
                       silent=FALSE,
                       intern=FALSE,
                       integrate=NULL,
-                      autopar=isParallelDLL(DLL),
                       ...){
+  ## Check that DLL is loaded
+  if ( ! DLL %in% names(getLoadedDLLs()) ) {
+    stop(sprintf("'%s' was not found in the list of loaded DLLs. Forgot to dyn.load(dynlib('%s')) ?", DLL, DLL))
+  }
   env <- environment() ## This environment
   if(!is.list(data))
     stop("'data' must be a list")
@@ -314,7 +317,7 @@ MakeADFun <- function(data, parameters, map=list(),
     ## For safety, check that parameter order match the parameter order in user template.
     ## If not, permute parameter list with a warning.
     ## Order in which parameters were requested:
-    parNameOrder <- .Call("getParameterOrder",data,parameters,new.env(),NULL,PACKAGE=DLL)
+    parNameOrder <- getParameterOrder(data, parameters, new.env(), DLL=DLL)
     if(!identical(names(parameters),parNameOrder)){
       if(!silent) cat("Order of parameters:\n")
       if(!silent) print(names(parameters))
@@ -428,17 +431,14 @@ MakeADFun <- function(data, parameters, map=list(),
   ## set.defaults: reset internal parameters to their default values.
   .random <- random
   retape <- function(set.defaults = TRUE){
+    omp <- config(DLL=DLL) ## Get current OpenMP configuration
     random <<- .random ## Restore original 'random' argument
     if(atomic){ ## FIXME: Then no reason to create ptrFun again later ?
       ## User template contains atomic functions ==>
       ## Have to call "double-template" to trigger tape generation
-      Fun <<- .Call("MakeDoubleFunObject",data,parameters,reportenv,NULL,PACKAGE=DLL)
-      Fun <<- registerFinalizer(Fun, DLL)
+      Fun <<- MakeDoubleFunObject(data, parameters, reportenv, DLL=DLL)
       ## Hack: unlist(parameters) only guarantied to be a permutation of the parameter vecter.
-      out <- .Call("EvalDoubleFunObject", Fun$ptr, unlist(parameters),
-                   control = list(do_simulate = as.integer(0),
-                                  get_reportdims = as.integer(1)),
-                   PACKAGE=DLL)
+      out <- EvalDoubleFunObject(Fun, unlist(parameters), get_reportdims = TRUE)
       ADreportDims <<- attr(out, "reportdims")
     }
     if(is.character(profile)){
@@ -485,10 +485,13 @@ MakeADFun <- function(data, parameters, map=list(),
       }
     }
     if("ADFun"%in%type){
-      ADFun <<- .Call("MakeADFunObject",data,parameters,reportenv,
-                     control=list(report=as.integer(ADreport)),PACKAGE=DLL)
-      if (is.null(ADFun)) return (NULL) ## ADFun=NULL used by sdreport
-      ADFun <<- registerFinalizer(ADFun, DLL)
+      ## autopar? => Tape with single thread
+      if (omp$autopar)
+          openmp(1, DLL=DLL)
+      ADFun <<- MakeADFunObject(data, parameters, reportenv, ADreport=ADreport, DLL=DLL)
+      ## autopar? => Restore OpenMP number of threads
+      if (omp$autopar)
+          openmp(omp$nthreads, DLL=DLL)
       if (!is.null(integrate)) {
           nm <- sapply(parameters, length)
           nmpar <- rep(names(nm), nm)
@@ -595,11 +598,11 @@ MakeADFun <- function(data, parameters, map=list(),
           value.best <<- Inf
       }
     }
-    if (autopar) {
+    if (omp$autopar && !ADreport) {
         ## Experiment !
         TransformADFunObject(ADFun,
                              method = "parallel_accumulate",
-                             num_threads = as.integer(openmp()),
+                             num_threads = as.integer(openmp(DLL=DLL)),
                              mustWork = 0L)
     }
     if (length(random) > 0) {
@@ -610,8 +613,7 @@ MakeADFun <- function(data, parameters, map=list(),
                              mustWork = 0L)
     }
     if("Fun"%in%type) {
-        Fun <<- .Call("MakeDoubleFunObject",data,parameters,reportenv,NULL,PACKAGE=DLL)
-        Fun <<- registerFinalizer(Fun, DLL)
+        Fun <<- MakeDoubleFunObject(data, parameters, reportenv, DLL=DLL)
     }
     if("ADGrad"%in%type) {
         retape_adgrad(lazy = TRUE)
@@ -625,13 +627,11 @@ MakeADFun <- function(data, parameters, map=list(),
   }## end{retape}
   ## Lazy / Full adgrad ?
   retape_adgrad <- function(lazy = TRUE) {
-      ## Use already taped function value
-      control <- list( f = ADFun$ptr )
-      ## In random effects case we only need the 'random' part of the gradient
-      if (lazy && !is.null(random))
-          control$random <- as.integer(random)
-      ADGrad <<- .Call("MakeADGradObject",data,parameters,reportenv,control,PACKAGE=DLL)
-      ADGrad <<- registerFinalizer(ADGrad, DLL)
+      ## * Use already taped function value f = ADFun$ptr
+      ## * In random effects case we only need the 'random' part of the gradient
+      if (!lazy) random <- NULL
+      ADGrad <<- MakeADGradObject(data, parameters, reportenv,
+                                  random=random, f=ADFun$ptr, DLL=DLL)
   }
   retape(set.defaults = TRUE)
   ## Has atomic functions been generated for the tapes ?
@@ -656,48 +656,40 @@ MakeADFun <- function(data, parameters, map=list(),
     }
     switch(type,
            "ADdouble" = {
-          res <- .Call("EvalADFunObject", ADFun$ptr, theta,
-                       control=list(
-                                 order=as.integer(order),
-                                 hessiancols=as.integer(cols),
-                                 hessianrows=as.integer(rows),
-                                 sparsitypattern=as.integer(sparsitypattern),
-                                 rangecomponent=as.integer(rangecomponent),
+          res <- EvalADFunObject(ADFun, theta,
+                                 order=order,
+                                 hessiancols=cols,
+                                 hessianrows=rows,
+                                 sparsitypattern=sparsitypattern,
+                                 rangecomponent=rangecomponent,
                                  rangeweight=rangeweight,
-                                 dumpstack=as.integer(dumpstack),
-                                 doforward=as.integer(doforward),
-                                 do_simulate=as.integer(do_simulate),
-                                 set_tail = as.integer(set_tail),
-                                 data_changed = as.integer(data_changed)
-                               ),
-                       PACKAGE=DLL
-                       )
+                                 dumpstack=dumpstack,
+                                 doforward=doforward,
+                                 set_tail=set_tail,
+                                 data_changed=data_changed)
           last.par <<- theta
           if(order==1)last.par1 <<- theta
           if(order==2)last.par2 <<- theta
         },
 
         "double" = {
-          res <- .Call("EvalDoubleFunObject", Fun$ptr, theta,
-                       control=list(do_simulate=as.integer(do_simulate),get_reportdims=as.integer(0)),PACKAGE=DLL)
+          res <- EvalDoubleFunObject(Fun, theta, do_simulate=do_simulate)
         },
 
         "ADGrad" = {
-          res <- .Call("EvalADFunObject", ADGrad$ptr, theta,
-                       control=list(order=as.integer(order),
-                                    hessiancols=as.integer(cols),
-                                    hessianrows=as.integer(rows),
-                                    sparsitypattern=as.integer(sparsitypattern),
-                                    rangecomponent=as.integer(rangecomponent),
-                                    rangeweight=rangeweight,
-                                    dumpstack=as.integer(dumpstack),
-                                    doforward=as.integer(doforward),
-                                    set_tail = as.integer(set_tail),
-                                    keepx=as.integer(keepx),
-                                    keepy=as.integer(keepy),
-                                    data_changed = as.integer(data_changed)
-                                    ),
-                       PACKAGE=DLL)
+            res <- EvalADFunObject(ADGrad, theta,
+                                   order=order,
+                                   hessiancols=cols,
+                                   hessianrows=rows,
+                                   sparsitypattern=sparsitypattern,
+                                   rangecomponent=rangecomponent,
+                                   rangeweight=rangeweight,
+                                   dumpstack=dumpstack,
+                                   doforward=doforward,
+                                   set_tail=set_tail,
+                                   keepx=keepx,
+                                   keepy=keepy,
+                                   data_changed=data_changed)
         },
         stop("invalid 'type'")) # end{ switch() }
     res
@@ -781,20 +773,9 @@ MakeADFun <- function(data, parameters, map=list(),
       ## now gives .5*tr(Hdot*Hinv) !!
       ## return
       as.vector( f(theta,order=1) ) +
-        .Call("EvalADFunObject", e$ADHess$ptr, theta,
-              control=list(
-                        order=as.integer(1),
-                        hessiancols=as.integer(0),
-                        hessianrows=as.integer(0),
-                        sparsitypattern=as.integer(0),
-                        rangecomponent=as.integer(1),
-                        rangeweight=as.double(w),
-                        dumpstack=as.integer(0),
-                        doforward=as.integer(1),
-                        set_tail = as.integer(0),
-                        data_changed = as.integer(0)
-                      ),
-              PACKAGE=DLL)
+          EvalADFunObject(e$ADHess, theta,
+                          order=1,
+                          rangeweight=w)
     }## order == 1
     else stop(sprintf("'order'=%d not yet implemented", order))
   } ## end{ h }
@@ -1181,14 +1162,38 @@ isParallelDLL <- function(DLL) {
     attr( .Call("getFramework", PACKAGE = DLL), "openmp")
 }
 
-##' Control number of openmp threads.
+##' Control number of OpenMP threads used by a TMB model.
 ##'
-##' @title Control number of openmp threads.
+##' This function controls the number of parallel threads used by a TMB model compiled with OpenMP.
+##' The number of threads is part of the configuration list \code{config()} of the DLL.
+##' The value only affects parallization of the DLL. It does \emph{not} affect BLAS/LAPACK specific parallization which has to be specified elsewhere.
+##'
+##' When a DLL is loaded, the number of threads is set to 1 by default.
+##' To activate parallelization you have to explicitly call \code{openmp(nthreads)} after loading the DLL. Calling \code{openmp(max=TRUE)} should normally pick up the environment variable \code{OMP_NUM_THREADS}, but this may be platform dependent.
+##'
+##' An experimental option \code{autopar=TRUE} can be set to parallelize models automatically. This requires the model to be compiled with \code{framework="TMBad"} and \code{openmp=TRUE} without further requirements on the C++ code. If the C++ code already has explicit parallel constructs these will be ignored if automatic parallelization is enabled.
+##' @title Control number of OpenMP threads used by a TMB model.
 ##' @param n Requested number of threads, or \code{NULL} to just read the current value.
+##' @param max Logical; Set n to OpenMP runtime value 'omp_get_max_threads()' ?
+##' @param autopar Logical; use automatic parallelization - see details.
+##' @param DLL DLL of a TMB model.
 ##' @return Number of threads.
-openmp <- function(n=NULL){
-  if(!is.null(n))n <- as.integer(n)
-  .Call("omp_num_threads",n,PACKAGE="TMB")
+openmp <- function(n=NULL, max=FALSE, autopar=NULL, DLL=getUserDLL()) {
+    ## Set n to max possible value?
+    if (max) {
+        n <- .Call("omp_num_threads", NULL, PACKAGE="TMB")
+    }
+    ## Set n ?
+    if (!is.null(n))
+        config(nthreads=n, DLL=DLL)
+    ## Set autopar ?
+    if (is.logical(autopar))
+        config(autopar=autopar, DLL=DLL)
+    ## Return current value
+    ans <- config(DLL=DLL)$nthreads
+    names(ans) <- DLL
+    attr(ans, "autopar") <- as.logical(config(DLL=DLL)$autopar)
+    ans
 }
 
 ##' Compile a C++ template into a shared object file. OpenMP flag is set if the template is detected to be parallel.
@@ -1396,6 +1401,7 @@ compile <- function(file,flags="",safebounds=TRUE,safeunload=TRUE,
 ##' @param all Precompile all or just the core parts of TMB ?
 ##' @param clean Remove precompiled libraries ?
 ##' @param trace Trace precompilation process ?
+##' @param get.header Create files 'TMB.h' and 'TMB.cpp' in current working directory to be used as part of a project?
 ##' @param ... Not used.
 ##' @examples
 ##' \dontrun{
@@ -1404,36 +1410,64 @@ compile <- function(file,flags="",safebounds=TRUE,safeunload=TRUE,
 ##' ## Perform precompilation by running a model
 ##' runExample(all = TRUE)
 ##' }
-precompile <- function(all=TRUE, clean=FALSE, trace=TRUE,...){
+precompile <- function(all=TRUE, clean=FALSE, trace=TRUE, get.header=FALSE, ...){
   owdir <- getwd()
   on.exit(setwd(owdir))
-  folder <- system.file(paste0("libs", Sys.getenv("R_ARCH")), package="TMB")
-  setwd(folder)
-  if(clean){
-      f <- dir(pattern = "^libTMB")
-      if(length(f) && trace) cat("Removing:", f, "\n")
-      file.remove(f)
-      f <- system.file(paste0("include/precompile.hpp"), package="TMB")
-      file.create(f)
-      return(NULL)
-  }
-  ## Cleanup before applying changes:
-  precompile(clean = TRUE)
-  ## Precompile frequently used classes:
-  if(all) precompileSource()
-  code <- c(
-      "#undef  TMB_LIB_INIT",
-      "#undef  LIB_UNLOAD",
-      "#undef  WITH_LIBTMB",
-      "#undef  TMB_PRECOMPILE",
-      "#define TMB_PRECOMPILE 1",
-      "#pragma message \"Running TMB precompilation...\""[trace],
-      "#include <TMB.hpp>"
+  if (get.header) {
+      ## TMB.h
+      outfile <- paste(getwd(), "TMB.h", sep="/")
+      code <- c(
+          "#ifndef TMB_H",
+          "#define TMB_H",
+          "#ifdef TMB_PRECOMPILE",
+          readLines(system.file(paste0("include/tmb_enable_precompile.hpp"), package="TMB")),
+          "#else",
+          readLines(system.file(paste0("include/tmb_enable_header_only.hpp"), package="TMB")),
+          "#endif",
+          "#include <TMB.hpp>",
+          precompileSource()[all],
+          "#endif")
+      writeLines(code, outfile)
+      if(trace) message(outfile, " generated")
+      ## TMB.cpp
+      outfile <- paste(getwd(), "TMB.cpp", sep="/")
+      code <- c(
+          "#define TMB_PRECOMPILE",
+          '#include "TMB.h"'
       )
-  writeLines(code, "libTMB.cpp")
-  writeLines(code, "libTMBomp.cpp")
-  writeLines(code, "libTMBdbg.cpp")
-  if(trace) message("Precompilation sources generated")
+      writeLines(code, outfile)
+      if(trace) message(outfile, " generated")
+  } else {
+      folder <- system.file(paste0("libs", Sys.getenv("R_ARCH")), package="TMB")
+      setwd(folder)
+      if(clean){
+          f <- dir(pattern = "^libTMB")
+          if(length(f) && trace) cat("Removing:", f, "\n")
+          file.remove(f)
+          f <- system.file(paste0("include/precompile.hpp"), package="TMB")
+          file.create(f)
+          return(NULL)
+      }
+      ## Cleanup before applying changes:
+      precompile(clean = TRUE)
+      ## Precompile frequently used classes:
+      outfile <-
+          paste0(system.file("include", package="TMB"), "/precompile.hpp")
+      if(all) writeLines(precompileSource(), outfile)
+      code <- c(
+          "#undef  TMB_LIB_INIT",
+          "#undef  LIB_UNLOAD",
+          "#undef  WITH_LIBTMB",
+          "#undef  TMB_PRECOMPILE",
+          "#define TMB_PRECOMPILE 1",
+          "#pragma message \"Running TMB precompilation...\""[trace],
+          "#include <TMB.hpp>"
+      )
+      writeLines(code, "libTMB.cpp")
+      writeLines(code, "libTMBomp.cpp")
+      writeLines(code, "libTMBdbg.cpp")
+      if(trace) message("Precompilation sources generated")
+  }
 }
 
 ##' Add the platform dependent dynlib extension. In order for examples
@@ -1773,29 +1807,20 @@ sparseHessianFun <- function(obj, skipFixedEffects=FALSE) {
       integer(0) ## <-- Empty integer vector
     }
   ## ptr.list
-  ADHess <- .Call("MakeADHessObject2", obj$env$data, obj$env$parameters,
-                  obj$env$reportenv,
-                  list(gf=obj$env$ADGrad$ptr, skip=skip), ## <-- Skip this index vector of parameters
-                  PACKAGE=obj$env$DLL)
-  ADHess <- registerFinalizer(ADHess, obj$env$DLL)
+  ADHess <- MakeADHessObject(obj$env$data,
+                             obj$env$parameters,
+                             obj$env$reportenv,
+                             gf=obj$env$ADGrad$ptr,
+                             skip=skip, ## <-- Skip this index vector of parameters
+                             DLL=obj$env$DLL)
   ## Experiment !
   TransformADFunObject(ADHess,
                        method = "reorder_random",
                        random_order = r,
                        mustWork = 0L)
-  ev <- function(par, set_tail=0)
-          .Call("EvalADFunObject", ADHess$ptr, par,
-                control = list(
-                            order = as.integer(0),
-                            hessiancols = integer(0),
-                            hessianrows = integer(0),
-                            sparsitypattern = as.integer(0),
-                            rangecomponent = as.integer(1),
-                            dumpstack=as.integer(0),
-                            doforward=as.integer(1),
-                            set_tail = as.integer(set_tail),
-                            data_changed = as.integer(0)
-                ), PACKAGE=obj$env$DLL)
+  ev <- function(par, set_tail=0) {
+      EvalADFunObject(ADHess, par, set_tail = set_tail)
+  }
   n <- as.integer(length(obj$env$par))
   M <- new("dsTMatrix",
            i = as.integer(attr(ADHess$ptr,"i")),
