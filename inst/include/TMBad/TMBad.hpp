@@ -1150,6 +1150,63 @@ struct ADFun {
     }
   }
 };
+/** \brief Construct ADFun that automatically retapes
+
+    By default, retaping takes place whenever the parameter vector
+    changes compared to previous evaluation. However, this can be
+    controlled in more detail by passing a custom tester object - see
+    the prototype `ParametersChanged`.
+
+    \param F Functor to be taped
+    \param x Evaluation point
+    \tparam Test Class to test if parameters have changed
+*/
+template <class Functor, class Test = ParametersChanged>
+ADFun<> ADFun_retaping(Functor &F, const std::vector<ad_aug> &x,
+                       Test test = Test()) {
+  typedef retaping_derivative_table<Functor, ADFun<>, Test> DTab;
+  global::Complete<AtomOp<DTab> > Op(F, x, test);
+  return ADFun<>(Op, x);
+}
+
+/** \brief Container of ADFun object with packed input and output */
+template <class dummy = void>
+struct ADFun_packed {
+  ADFun<> Fp;
+  ADFun_packed(const ADFun<> &Fp) : Fp(Fp) {}
+  ADFun_packed() {}
+  ad_segment operator()(const std::vector<ad_segment> &x) {
+    std::vector<ad_segment> xp(x.size());
+    for (size_t i = 0; i < xp.size(); i++) xp[i] = pack(x[i]);
+    std::vector<ad_aug> yp = Fp(concat(xp));
+    return unpack(yp, 0);
+  }
+  bool initialized() { return Fp.Domain() != 0; }
+};
+/** \copydoc ADFun_retaping
+    \details
+    The resulting object is `ADFun_packed`, i.e. it has *packed*
+    inputs **and** outputs. Such packed I/O can compactly represent
+    e.g. matrices, vectors or other large objects with a consequtive
+    memory layout.
+*/
+template <class Functor, class Test>
+ADFun_packed<> ADFun_retaping(Functor &F, const std::vector<ad_segment> &x,
+                              Test test) {
+  static const bool packed = true;
+  typedef retaping_derivative_table<PackWrap<Functor>, ADFun<>, PackWrap<Test>,
+                                    packed>
+      DTab;
+  PackWrap<Functor> Fp(F);
+  std::vector<ad_segment> xp(x.size());
+  for (size_t i = 0; i < xp.size(); i++) xp[i] = pack(x[i]);
+  std::vector<ad_aug> xp_ = concat(xp);
+  PackWrap<Test> testp(test);
+  global::Complete<AtomOp<DTab> > Op(Fp, xp_, testp);
+  ADFun<> TapeFp(Op, xp_);
+  return ADFun_packed<>(TapeFp);
+}
+
 template <class ADFun>
 struct Sparse : ADFun {
   std::vector<Index> i;

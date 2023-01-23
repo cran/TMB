@@ -5,6 +5,7 @@
 #include <R_ext/BLAS.h>
 #include <R_ext/Lapack.h>
 #include "Matrix.h"
+#include <Rdefines.h>
 
 #ifdef _USE_EXTERNAL_CHOLMOD_LIB_
 /* ========================================================================== */
@@ -99,7 +100,7 @@ SEXP tmb_symbolic(SEXP Qp) {
 
 #endif
 
-SEXP have_tmb_symbolic() {
+SEXP have_tmb_symbolic(void) {
   SEXP ans;
   PROTECT(ans = NEW_INTEGER(1));
 #ifdef _USE_EXTERNAL_CHOLMOD_LIB_

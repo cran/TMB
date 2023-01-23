@@ -113,6 +113,7 @@ using SparseMatrix = SparseMatrix_rename<T, Flags, StorageIndex>;
 #include "TMBad/compile.hpp"
 #include "TMBad/graph2dot.hpp"
 #include "TMBad/compression.hpp"
+#include "TMBad/ad_blas.hpp"
 #ifndef WITH_LIBTMB
 #include "TMBad/TMBad.cpp"
 #endif
@@ -160,6 +161,7 @@ namespace TMBad {
 void eigen_REprintf(const char* x)CSKIP({REprintf(x);})
 
 #include "tmbutils/tmbutils.hpp"
+#include "tmbutils/vectorize.hpp"
 using tmbutils::matrix;
 using tmbutils::vector;
 using CppAD::AD;
@@ -197,6 +199,8 @@ namespace CppAD{
 #include "convenience.hpp"    // Requires besselK
 #include "tmbutils/tmbutils_extra.hpp"
 #include "tmbutils/R_inla.hpp"
+#include "tmbutils/sparse_matrix_exponential.hpp"
+#include "tmbutils/concat.hpp"
 #include "precompile.hpp" // Must come last
 using tmbutils::array;
 using Eigen::Matrix;
