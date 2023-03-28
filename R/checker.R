@@ -31,12 +31,20 @@
 ##' information matrix) to provide an estimate of parameter bias caused
 ##' by the Laplace approximation.
 ##'
+##' @section Simulation/re-estimation:
+##' A full simulation/re-estimation study is performed when \code{estimate=TRUE}.
+##' By default \link[stats]{nlminb} will be used to perform the minimization, and output is stored in a separate list component 'estimate' for each replicate.
+##' Should a custom optimizer be needed, it can be passed as a user function via the same argument (\code{estimate}).
+##' The function (\code{estimate}) will be called for each simulation as \code{estimate(obj)} where \code{obj} is the simulated model object.
+##' Current default corresponds to \code{estimate = function(obj) nlminb(obj$par,obj$fn,obj$gr)}.
 ##' @title Check consistency and Laplace accuracy
 ##' @param obj Object from \code{MakeADFun}
 ##' @param par Parameter vector (\eqn{\theta}) for simulation. If
 ##'     unspecified use the best encountered parameter of the object.
 ##' @param hessian Calculate the hessian matrix for each replicate ?
+##' @param estimate Estimate parameters for each replicate ?
 ##' @param n Number of simulations
+##' @param observation.name Optional; Name of simulated observation
 ##' @return List with gradient simulations (joint and marginal)
 ##' @seealso \code{\link{summary.checkConsistency}}, \code{\link{print.checkConsistency}}
 ##' @examples
@@ -50,8 +58,17 @@
 checkConsistency <- function(obj,
                              par = NULL,
                              hessian = FALSE,
-                             n = 100
+                             estimate = FALSE,
+                             n = 100,
+                             observation.name = NULL
                              ) {
+    ## Optimizer
+    if (!is.logical(estimate)) {
+        Optimizer <- match.fun(estimate)
+        estimate <- TRUE
+    } else {
+        Optimizer <- function(obj) nlminb(obj$par, obj$fn, obj$gr)
+    }
     ## Args to construct copy of 'obj'
     args <- as.list(obj$env)[intersect(names(formals(MakeADFun)), ls(obj$env))]
     ## Determine parameter and full parameter to use
@@ -84,14 +101,53 @@ checkConsistency <- function(obj,
     ## Find randomeffects character
     args$random <- names.random
     args$regexp <- FALSE
+    ## Are we in 'fast' (no retape) mode ?
+    fast <- !is.null(observation.name)
+    if (fast) {
+        ## Move data -> parameters
+        ## Note: We really do need to know 'observation.name'. There
+        ## could be other (deterministic) items in 'data'...
+        args$parameters <- c(args$data[observation.name], args$parameters)
+        args$data[observation.name] <- NULL
+    }
     ## Create new object
     newobj <- do.call("MakeADFun", args)
+    newobj0 <- newobj ## backup
+    if (fast) {
+        parobs <- names(newobj$par) %in% observation.name
+        ## NOTE: Simulation is stored as part of 'newobj$env$par'
+        expandpar <- function(par) {
+            ## Incudes par fixed *and* simulation:
+            ans <- newobj0$env$par[newobj0$env$lfixed()]
+            ans[!parobs] <- par
+            ans
+        }
+        ## FIXME: No 'obj$he()' in this object
+        newobj <- list(fn=function(x)newobj0$fn(expandpar(x)),
+                       gr=function(x)newobj0$gr(expandpar(x))[!parobs],
+                       par=newobj0$par[!parobs],
+                       env=newobj0$env
+                       )
+    }
     doSim <- function(...) {
-        newobj$env$data <- newobj$simulate(newobj$env$par, complete=TRUE)
+        simdata <- newobj0$simulate(newobj0$env$par, complete=TRUE)
+        if (!fast) {
+            newobj$env$data <- simdata
+        }
         ## Check that random effects have been simulated
-        haveRandomSim <- all( names.random %in% names(newobj$env$data) )
+        haveRandomSim <- all( names.random %in% names(simdata) )
+        ## Set good inner starting values
         if (haveRandomSim) {
-            newobj$env$parameters[names.random] <- newobj$env$data[names.random]
+            if (fast) {
+                for (nm in names.random) {
+                    newobj$env$par[names(newobj$env$par) == nm] <- simdata[[nm]]
+                }
+            } else {
+                newobj$env$parameters[names.random] <- simdata[names.random]
+            }
+        }
+        ## FIXME: Mapped random effects not supported (yet) for 'fast' approach
+        if (!fast && haveRandomSim) {
             ## Snippet taken from MakeADFun to account for mapped parameters:
             map <- args$map[names(args$map) %in% names.random]
             if (length(map) > 0) {
@@ -101,18 +157,34 @@ checkConsistency <- function(obj,
                 keepAttrib(newobj$env$parameters[names(map)]) <- param.map
             }
         }
-        reDoCholesky <- TRUE ## FIXME: Perhaps make it an option
-        if(reDoCholesky)
+        if (fast) {
+            ## Set simulated data
+            for (nm in observation.name) {
+                newobj$env$par[names(newobj$env$par) == nm] <- simdata[[nm]]
+            }
+            ## Set inits
+            newobj$env$last.par.best <- newobj$env$par
+            newobj$env$value.best <- Inf
+        } else {
+            ## This approach *must* redo Cholesky
             newobj$env$L.created.by.newton <- NULL
-        newobj$env$retape()
+            newobj$env$retape()
+        }
         ans <- list()
         if (haveRandomSim) {
             ans$gradientJoint <- newobj$env$f(order=1)
             if(!is.null(newobj$env$random))
                 ans$gradientJoint <- ans$gradientJoint[-newobj$env$random]
+            if (fast)
+                ans$gradientJoint <- ans$gradientJoint[!parobs]
         }
         ans$gradient <- newobj$gr(par)
         if (hessian) ans$hessian <- optimHess(par, newobj$fn, newobj$gr)
+        if (estimate) {
+            newobj$par <- par ## just in case...
+            ans$objective.true <- newobj$fn(par)
+            ans$estimate <- try(Optimizer(newobj))
+        }
         ans
     }
     ans <- lapply(seq_len(n), doSim)
@@ -174,6 +246,27 @@ summary.checkConsistency <- function(object, na.rm=FALSE, ...) {
     }
     ans$joint <- check( ans$gradientJoint )
     ans$marginal <- check( ans$gradient )
+    ## Simulation study
+    have.estimate <- !is.null(object[[1]]$estimate)
+    if (have.estimate) {
+        getEstMat <- function(name) {
+            do.call("cbind",
+                    lapply(object,
+                           function(x)
+                               as.vector(x$estimate[[name]])))
+        }
+        est <- list()
+        est$par <- t(getEstMat("par"))
+        colnames(est$par) <- names(ans$par)
+        est$par <- as.data.frame(est$par)
+        est$objective <- drop(getEstMat("objective"))
+        est$deviance <- 2 * ( drop(getMat("objective.true")) - est$objective )
+        est$deviance.p.value <-
+            ks.test(est$deviance, "pchisq", df = length(ans$par))$p.value
+        ans$convergence <- drop(getEstMat("convergence"))
+        ## Set it
+        ans$estimate <- est
+    }
     ans
 }
 
@@ -204,6 +297,12 @@ print.checkConsistency <- function(x, ...) {
     cat("\n")
     cat("Estimated parameter bias:\n")
     print(s$marginal$bias)
+    ## Estimate info:
+    if (!is.null(s$estimate)) {
+        cat("\n")
+        cat("summary(.)$estimate contains:\n")
+        print(names(s$estimate))
+    }
     invisible(x)
 }
 
