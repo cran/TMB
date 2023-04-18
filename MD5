@@ -1,6 +1,6 @@
-ac71b9a28c602355f19b4c92d1c7dfec *DESCRIPTION
-c8cb50afcbc20147a4779d86e6a1bec9 *NAMESPACE
-3ecd7443d6d1a30b3ba4fb8a9277a209 *NEWS
+100c491d04886e9c490ae97fae14d8ad *DESCRIPTION
+d665ce2442482e9df102977db7cc7020 *NAMESPACE
+30ba61ea64737d5cddf3b3d0a5fecd7a *NEWS
 e521197de989d9c10fc9d9c8f6ae0c8b *R/TMB.R
 0a8a19e6bc5dd48d053735256258e36a *R/benchmark.R
 b8cc540513343dbfade07876fe7848b3 *R/checker.R
@@ -46,7 +46,7 @@ e3ea72e0669f0b68177acf2ab4ad1074 *inst/include/TMBad/graph_transform.hpp
 11ed0f6676cccf23cd218a543dfe9b42 *inst/include/TMBad/integrate.hpp
 78a2d08aa61056792cc75050c2c9fb88 *inst/include/TMBad/radix.hpp
 84b60c784a28117d60040e3d3e5f4aa0 *inst/include/TMBad/tmbad_allow_comparison.hpp
-b09e5e2057f21e72b19e0f5c6fc15536 *inst/include/TMBad/vectorize.hpp
+f77bed125a573c43d35921dee15739d6 *inst/include/TMBad/vectorize.hpp
 5f72b6e57eac7c7b51db3a459d7e2d5c *inst/include/Vectorize.hpp
 1722ff25f1321ce2cc76bd1b211cde07 *inst/include/atomic_convolve.hpp
 e7c51b1ef40e13a20a7f0202f932c14d *inst/include/atomic_macro.hpp
@@ -373,5 +373,5 @@ c29b28480a5bee583f9900da5d0adbbf *src/Makevars
 9d60805278b72ef9f60edb396b85b77d *src/external_metis.c
 412ff0f60a76105f734d3ac9445dd1cf *src/init.c
 befc9fe6d7fd47dbd1e1964357f17a0b *src/local_stubs.c
-51938df1794f72b5755a4f273086601e *src/solve_subset.c
+9cf6f92cc0358caa01872ca5517381f7 *src/solve_subset.c
 49030ef72eb1395af7c71a40d1d256d9 *src/utils.c
