@@ -742,6 +742,8 @@ struct op_info {
     smart_pointer,
     /** \copydoc global::Operator::is_linear */
     is_linear,
+    /** \copydoc global::Operator::is_constant */
+    is_constant,
     /** \copydoc global::Operator::independent_variable */
     independent_variable,
     /** \copydoc global::Operator::dependent_variable */
@@ -762,6 +764,7 @@ struct op_info {
         (op.dynamic * (1 << dynamic)) |
         (op.smart_pointer * (1 << smart_pointer)) |
         (op.is_linear * (1 << is_linear)) |
+        (op.is_constant * (1 << is_constant)) |
         (op.independent_variable * (1 << independent_variable)) |
         (op.dependent_variable * (1 << dependent_variable)) |
         (op.allow_remap * (1 << allow_remap)) |
@@ -1537,6 +1540,8 @@ struct global {
     static const int max_fuse_depth = 2;
     /** \brief Is this a linear operator ? */
     static const bool is_linear = false;
+    /** \brief Is this a constant operator ? */
+    static const bool is_constant = false;
     /** \brief Is this operator a 'smart pointer' (with reference counting) ? */
     static const bool smart_pointer = false;
     /** \brief Protect this operator from elimination by the tape optimizer ? */
@@ -2318,6 +2323,7 @@ struct global {
 
   struct ConstOp : Operator<0, 1> {
     static const bool is_linear = true;
+    static const bool is_constant = true;
     template <class Type>
     void forward(ForwardArgs<Type> &args) {}
     void forward(ForwardArgs<Replay> &args);
@@ -2563,7 +2569,7 @@ struct global {
     Index index;
     static const Index NA = (Index)-1;
     bool initialized() const;
-    bool ontape() const;
+    bool on_some_tape() const;
     /** \brief Compatibiltiy with ad_aug */
     void addToTape() const;
     /** \brief Get the tape of this ad_plain */
@@ -2791,6 +2797,7 @@ struct global {
         tape or might *not* satisfy the storage requirement. */
     ad_segment(Replay *x, size_t n, bool zero_check = false);
     bool identicalZero();
+    bool all_on_active_tape(Replay *x, size_t n);
     bool is_contiguous(Replay *x, size_t n);
     bool all_zero(Replay *x, size_t n);
     bool all_constant(Replay *x, size_t n);
@@ -2833,7 +2840,15 @@ struct global {
       mutable global *glob;
     }
     data;
+    /** \brief Is this object on *some* (not necessarily active) tape? */
+    bool on_some_tape() const;
+    /** \brief Is this object on the current active tape? */
+    bool on_active_tape() const;
+    /** \brief Alias for `on_some_tape()` (for backward compatibility only) */
     bool ontape() const;
+    /** \brief Is this object guarantied to be a constant?
+        \note If `false` the object *may* or *may not* be constant.
+    */
     bool constant() const;
     Index index() const;
     /** \brief Get the tape of this ad_aug
@@ -3031,7 +3046,7 @@ bool isContiguous(V &x) {
   bool ok = true;
   Index j_previous;
   for (size_t i = 0; i < (size_t)x.size(); i++) {
-    if (!x[i].ontape()) {
+    if (!x[i].on_some_tape()) {
       ok = false;
       break;
     }
@@ -3183,8 +3198,11 @@ using ::expm1;
 using ::fabs;
 using ::log1p;
 using std::acos;
+using std::acosh;
 using std::asin;
+using std::asinh;
 using std::atan;
+using std::atanh;
 using std::cos;
 using std::cosh;
 using std::exp;
@@ -3456,6 +3474,60 @@ struct AtanOp : global::UnaryOperator {
 ad_plain atan(const ad_plain &x);
 ad_aug atan(const ad_aug &x);
 ad_adapt atan(const ad_adapt &x);
+Writer asinh(const Writer &x);
+struct AsinhOp : global::UnaryOperator {
+  static const bool have_eval = true;
+  template <class Type>
+  Type eval(Type x) {
+    return asinh(x);
+  }
+  template <class Type>
+  void reverse(ReverseArgs<Type> &args) {
+    args.dx(0) +=
+        args.dy(0) * Type(1.) / sqrt(args.x(0) * args.x(0) + Type(1.));
+  }
+  void reverse(ReverseArgs<Scalar> &args);
+  const char *op_name();
+};
+ad_plain asinh(const ad_plain &x);
+ad_aug asinh(const ad_aug &x);
+ad_adapt asinh(const ad_adapt &x);
+Writer acosh(const Writer &x);
+struct AcoshOp : global::UnaryOperator {
+  static const bool have_eval = true;
+  template <class Type>
+  Type eval(Type x) {
+    return acosh(x);
+  }
+  template <class Type>
+  void reverse(ReverseArgs<Type> &args) {
+    args.dx(0) +=
+        args.dy(0) * Type(1.) / sqrt(args.x(0) * args.x(0) - Type(1.));
+  }
+  void reverse(ReverseArgs<Scalar> &args);
+  const char *op_name();
+};
+ad_plain acosh(const ad_plain &x);
+ad_aug acosh(const ad_aug &x);
+ad_adapt acosh(const ad_adapt &x);
+Writer atanh(const Writer &x);
+struct AtanhOp : global::UnaryOperator {
+  static const bool have_eval = true;
+  template <class Type>
+  Type eval(Type x) {
+    return atanh(x);
+  }
+  template <class Type>
+  void reverse(ReverseArgs<Type> &args) {
+    args.dx(0) += args.dy(0) * Type(1.) / (Type(1) - args.x(0) * args.x(0));
+  }
+  void reverse(ReverseArgs<Scalar> &args);
+  const char *op_name();
+};
+ad_plain atanh(const ad_plain &x);
+ad_aug atanh(const ad_aug &x);
+ad_adapt atanh(const ad_adapt &x);
+
 template <class T>
 T abs(const T &x) {
   return fabs(x);
@@ -3478,6 +3550,26 @@ struct PowOp : global::BinaryOperator {
 ad_plain pow(const ad_plain &x1, const ad_plain &x2);
 ad_aug pow(const ad_aug &x1, const ad_aug &x2);
 ad_adapt pow(const ad_adapt &x1, const ad_adapt &x2);
+using std::atan2;
+Writer atan2(const Writer &x1, const Writer &x2);
+struct Atan2 : global::BinaryOperator {
+  static const bool have_eval = true;
+  template <class Type>
+  Type eval(Type x1, Type x2) {
+    return atan2(x1, x2);
+  }
+  template <class Type>
+  void reverse(ReverseArgs<Type> &args) {
+    args.dx(0) += args.dy(0) * args.x(1) /
+                  (args.x(0) * args.x(0) + args.x(1) * args.x(1));
+    args.dx(1) += args.dy(0) * -args.x(0) /
+                  (args.x(0) * args.x(0) + args.x(1) * args.x(1));
+  }
+  const char *op_name();
+};
+ad_plain atan2(const ad_plain &x1, const ad_plain &x2);
+ad_aug atan2(const ad_aug &x1, const ad_aug &x2);
+ad_adapt atan2(const ad_adapt &x1, const ad_adapt &x2);
 using std::max;
 Writer max(const Writer &x1, const Writer &x2);
 struct MaxOp : global::BinaryOperator {

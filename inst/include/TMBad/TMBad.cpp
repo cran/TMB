@@ -682,7 +682,8 @@ void compress(global &glob, size_t max_period_size) {
 #include "global.hpp"
 namespace TMBad {
 
-global *global_ptr[TMBAD_MAX_NUM_THREADS] = {NULL};
+global *global_ptr_data[TMBAD_MAX_NUM_THREADS] = {NULL};
+global **global_ptr = global_ptr_data;
 std::ostream *Writer::cout = 0;
 bool global::fuse = 0;
 
@@ -1795,6 +1796,7 @@ void global::print(print_config cfg) {
     Rcout << setw(7) << i;
     int numvar = opstack[i]->output_size();
     for (int j = 0; j < numvar + (numvar == 0); j++) {
+      if (j > 0) Rcout << cfg.prefix;
       Rcout << setw((7 + 7) * (j > 0) + 13);
       if (numvar > 0)
         Rcout << values[v];
@@ -1942,12 +1944,12 @@ void global::add_to_opstack(OperatorPure *pOp) {
 
 bool global::ad_plain::initialized() const { return index != NA; }
 
-bool global::ad_plain::ontape() const { return initialized(); }
+bool global::ad_plain::on_some_tape() const { return initialized(); }
 
 void global::ad_plain::addToTape() const { TMBAD_ASSERT(initialized()); }
 
 global *global::ad_plain::glob() const {
-  return (ontape() ? get_glob() : NULL);
+  return (on_some_tape() ? get_glob() : NULL);
 }
 
 void global::ad_plain::override_by(const ad_plain &x) const {}
@@ -2107,15 +2109,30 @@ global::ad_segment::ad_segment(Replay *x, size_t n, bool zero_check)
     return;
   }
   if (!is_contiguous(x, n)) {
-    for (size_t i = 0; i < n; i++) x[i] = x[i].copy();
+    size_t before = get_glob()->values.size();
+    this->x = x[0].copy();
+    for (size_t i = 1; i < n; i++) x[i].copy();
+    size_t after = get_glob()->values.size();
+    TMBAD_ASSERT2(after - before == n,
+                  "Each invocation of copy() should construct a new variable");
+    return;
   }
   if (n > 0) this->x = x[0];
 }
 
 bool global::ad_segment::identicalZero() { return !x.initialized(); }
 
+bool global::ad_segment::all_on_active_tape(Replay *x, size_t n) {
+  global *cur_glob = get_glob();
+  for (size_t i = 0; i < n; i++) {
+    bool ok = x[i].on_some_tape() && (x[i].glob() == cur_glob);
+    if (!ok) return false;
+  }
+  return true;
+}
+
 bool global::ad_segment::is_contiguous(Replay *x, size_t n) {
-  if (n > 0 && !(*x).ontape()) return false;
+  if (!all_on_active_tape(x, n)) return false;
   for (size_t i = 1; i < n; i++) {
     if (x[i].index() != x[i - 1].index() + 1) return false;
   }
@@ -2152,16 +2169,24 @@ ad_plain global::ad_segment::offset() const { return x; }
 
 Index global::ad_segment::index() const { return x.index; }
 
-bool global::ad_aug::ontape() const { return taped_value.initialized(); }
+bool global::ad_aug::on_some_tape() const { return taped_value.initialized(); }
+
+bool global::ad_aug::on_active_tape() const {
+  return on_some_tape() && (this->glob() == get_glob());
+}
+
+bool global::ad_aug::ontape() const { return on_some_tape(); }
 
 bool global::ad_aug::constant() const { return !taped_value.initialized(); }
 
 Index global::ad_aug::index() const { return taped_value.index; }
 
-global *global::ad_aug::glob() const { return (ontape() ? data.glob : NULL); }
+global *global::ad_aug::glob() const {
+  return (on_some_tape() ? data.glob : NULL);
+}
 
 Scalar global::ad_aug::Value() const {
-  if (ontape())
+  if (on_some_tape())
     return taped_value.Value(this->data.glob);
   else
     return data.value;
@@ -2174,7 +2199,7 @@ global::ad_aug::ad_aug(Scalar x) { data.value = x; }
 global::ad_aug::ad_aug(ad_plain x) : taped_value(x) { data.glob = get_glob(); }
 
 void global::ad_aug::addToTape() const {
-  if (ontape()) {
+  if (on_some_tape()) {
     if (data.glob != get_glob()) {
       TMBAD_ASSERT2(in_context_stack(data.glob), "Variable not initialized?");
       global::OperatorPure *pOp =
@@ -2205,19 +2230,21 @@ bool global::ad_aug::in_context_stack(global *glob) const {
 }
 
 ad_aug global::ad_aug::copy() const {
-  if (ontape()) {
+  if (on_active_tape()) {
     return taped_value.copy();
   } else {
-    addToTape();
-    return *this;
+    ad_aug cpy = *this;
+    cpy.addToTape();
+    return cpy;
   }
 }
 
 ad_aug global::ad_aug::copy0() const {
-  if (!ontape()) {
-    addToTape();
+  ad_aug cpy = *this;
+  if (!cpy.on_active_tape()) {
+    cpy.addToTape();
   }
-  return taped_value.copy0();
+  return cpy.taped_value.copy0();
 }
 
 bool global::ad_aug::identicalZero() const {
@@ -2310,7 +2337,7 @@ void global::ad_aug::Independent() {
 }
 
 Scalar &global::ad_aug::Value() {
-  if (ontape())
+  if (on_some_tape())
 
     return taped_value.Value();
   else
@@ -2332,7 +2359,7 @@ std::ostream &operator<<(std::ostream &os, const global::ad_plain &x) {
 
 std::ostream &operator<<(std::ostream &os, const global::ad_aug &x) {
   os << "{";
-  if (x.ontape()) {
+  if (x.on_some_tape()) {
     os << "value=" << x.data.glob->values[x.taped_value.index] << ", ";
     os << "index=" << x.taped_value.index << ", ";
     os << "tape=" << x.data.glob;
@@ -2778,6 +2805,74 @@ ad_aug atan(const ad_aug &x) {
 }
 ad_adapt atan(const ad_adapt &x) { return ad_adapt(atan(ad_aug(x))); }
 
+Writer asinh(const Writer &x) {
+  return "asinh"
+         "(" +
+         x + ")";
+}
+void AsinhOp::reverse(ReverseArgs<Scalar> &args) {
+  typedef Scalar Type;
+  if (args.dy(0) != Type(0))
+    args.dx(0) +=
+        args.dy(0) * Type(1.) / sqrt(args.x(0) * args.x(0) + Type(1.));
+}
+const char *AsinhOp::op_name() { return "AsinhOp"; }
+ad_plain asinh(const ad_plain &x) {
+  return get_glob()->add_to_stack<AsinhOp>(x);
+}
+ad_aug asinh(const ad_aug &x) {
+  if (x.constant())
+    return Scalar(asinh(x.Value()));
+  else
+    return asinh(ad_plain(x));
+}
+ad_adapt asinh(const ad_adapt &x) { return ad_adapt(asinh(ad_aug(x))); }
+
+Writer acosh(const Writer &x) {
+  return "acosh"
+         "(" +
+         x + ")";
+}
+void AcoshOp::reverse(ReverseArgs<Scalar> &args) {
+  typedef Scalar Type;
+  if (args.dy(0) != Type(0))
+    args.dx(0) +=
+        args.dy(0) * Type(1.) / sqrt(args.x(0) * args.x(0) - Type(1.));
+}
+const char *AcoshOp::op_name() { return "AcoshOp"; }
+ad_plain acosh(const ad_plain &x) {
+  return get_glob()->add_to_stack<AcoshOp>(x);
+}
+ad_aug acosh(const ad_aug &x) {
+  if (x.constant())
+    return Scalar(acosh(x.Value()));
+  else
+    return acosh(ad_plain(x));
+}
+ad_adapt acosh(const ad_adapt &x) { return ad_adapt(acosh(ad_aug(x))); }
+
+Writer atanh(const Writer &x) {
+  return "atanh"
+         "(" +
+         x + ")";
+}
+void AtanhOp::reverse(ReverseArgs<Scalar> &args) {
+  typedef Scalar Type;
+  if (args.dy(0) != Type(0))
+    args.dx(0) += args.dy(0) * Type(1.) / (Type(1) - args.x(0) * args.x(0));
+}
+const char *AtanhOp::op_name() { return "AtanhOp"; }
+ad_plain atanh(const ad_plain &x) {
+  return get_glob()->add_to_stack<AtanhOp>(x);
+}
+ad_aug atanh(const ad_aug &x) {
+  if (x.constant())
+    return Scalar(atanh(x.Value()));
+  else
+    return atanh(ad_plain(x));
+}
+ad_adapt atanh(const ad_adapt &x) { return ad_adapt(atanh(ad_aug(x))); }
+
 Writer pow(const Writer &x1, const Writer &x2) {
   return "pow"
          "(" +
@@ -2795,6 +2890,25 @@ ad_aug pow(const ad_aug &x1, const ad_aug &x2) {
 }
 ad_adapt pow(const ad_adapt &x1, const ad_adapt &x2) {
   return ad_adapt(pow(ad_aug(x1), ad_aug(x2)));
+}
+
+Writer atan2(const Writer &x1, const Writer &x2) {
+  return "atan2"
+         "(" +
+         x1 + "," + x2 + ")";
+}
+const char *Atan2::op_name() { return "Atan2"; }
+ad_plain atan2(const ad_plain &x1, const ad_plain &x2) {
+  return get_glob()->add_to_stack<Atan2>(x1, x2);
+}
+ad_aug atan2(const ad_aug &x1, const ad_aug &x2) {
+  if (x1.constant() && x2.constant())
+    return Scalar(atan2(x1.Value(), x2.Value()));
+  else
+    return atan2(ad_plain(x1), ad_plain(x2));
+}
+ad_adapt atan2(const ad_adapt &x1, const ad_adapt &x2) {
+  return ad_adapt(atan2(ad_aug(x1), ad_aug(x2)));
 }
 
 Writer max(const Writer &x1, const Writer &x2) {
@@ -3680,7 +3794,7 @@ void clique::get_stride(const clique &super, Index ind,
   for (size_t i = 0; i < xa_count; i++, ++mv) {
     mv.flip();
     for (size_t j = 0; j < xi_count; j++, ++mv) {
-      TMBAD_ASSERT(logsum[j].ontape());
+      TMBAD_ASSERT(logsum[j].on_some_tape());
       x[mv] = logsum[j];
     }
     mv.flip();
@@ -4203,7 +4317,6 @@ std::vector<Index> remap_identical_sub_expressions(
 
   std::vector<Index> v2o = glob.var2op();
   std::vector<Index> dep;
-  global::OperatorPure *constant = glob.getOperator<global::ConstOp>();
   global::OperatorPure *invop = glob.getOperator<global::InvOp>();
   Dependencies dep1;
   Dependencies dep2;
@@ -4231,6 +4344,8 @@ std::vector<Index> remap_identical_sub_expressions(
       ok &= (CurOp->input_size() == RemOp->input_size());
       ok &= (CurOp->output_size() == RemOp->output_size());
 
+      op_info CurInfo = CurOp->info();
+
       if (ok && (nout > 1)) {
         for (size_t k = 1; k < nout; k++) {
           ok &= (remap[i + k] < i);
@@ -4245,7 +4360,7 @@ std::vector<Index> remap_identical_sub_expressions(
         ok = false;
       }
       if (ok) {
-        if (CurOp == constant) {
+        if (CurInfo.test(op_info::is_constant)) {
           if (glob.values[i] != glob.values[remap[i]]) {
             ok = false;
           }
