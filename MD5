@@ -1,6 +1,6 @@
-fe4cb2a966f97dffda7df4ae81f137d6 *DESCRIPTION
+33244ffc8699fb21e411cb011ef16505 *DESCRIPTION
 d665ce2442482e9df102977db7cc7020 *NAMESPACE
-01f51ab89854a3f2c1b4f0ce667e7f08 *NEWS
+ec88c105cea9763a13a39aedef613325 *NEWS
 e92328fe1806012971e0285dbacd6895 *R/TMB.R
 0a8a19e6bc5dd48d053735256258e36a *R/benchmark.R
 b8cc540513343dbfade07876fe7848b3 *R/checker.R
@@ -31,7 +31,7 @@ cafc553645337e587a317b2b05a5addf *inst/examples/randomregression.R
 c16463bf03af3da3c2dfc6a78cf1ce16 *inst/include/EigenWarnings/DisableStupidWarnings
 3f82e5c500097e5c5be038cecc5389f4 *inst/include/Rstream.hpp
 21b0a7ef477d0b5a01e878f0b995c108 *inst/include/TMB.hpp
-5a17e4869dd88a1bd12a7869b329ff8f *inst/include/TMBad/TMBad.cpp
+b5de765ed5d3d8068d6d77bafa89a0be *inst/include/TMBad/TMBad.cpp
 481c2eb64c1927608bdb0cf504321f2d *inst/include/TMBad/TMBad.hpp
 4d100ee9c1835ed1bc7d82d90e21290f *inst/include/TMBad/ad_blas.hpp
 874a10de7bd0090b14fec2d7129f0c67 *inst/include/TMBad/checkpoint.hpp
@@ -40,7 +40,7 @@ c16463bf03af3da3c2dfc6a78cf1ce16 *inst/include/EigenWarnings/DisableStupidWarnin
 05c6f4b2dff132d39560807329ab8f70 *inst/include/TMBad/compression.hpp
 736ee93df9d8b6a817e750b513f4dfbb *inst/include/TMBad/config.hpp
 11d7cb05b168cd082952ba8a2627b277 *inst/include/TMBad/eigen_numtraits.hpp
-d4bfb003494b79b6b17203495479e21d *inst/include/TMBad/global.hpp
+11d17faa33d4c5e7f6bead97c47c3ba0 *inst/include/TMBad/global.hpp
 5e5751d29bf6657124c794c3c2df784a *inst/include/TMBad/graph2dot.hpp
 e3ea72e0669f0b68177acf2ab4ad1074 *inst/include/TMBad/graph_transform.hpp
 11ed0f6676cccf23cd218a543dfe9b42 *inst/include/TMBad/integrate.hpp
