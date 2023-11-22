@@ -398,7 +398,7 @@ MakeADFun <- function(data, parameters, map=list(),
   tracemgc <- TRUE
 
   ## dummy assignments better than  "globalVariables(....)"
-  L.created.by.newton <- skipFixedEffects <- spHess <- NULL
+  L.created.by.newton <- skipFixedEffects <- spHess <- altHess <- NULL
 
   ## Disable all tracing information
   beSilent <- function(){
@@ -699,7 +699,7 @@ MakeADFun <- function(data, parameters, map=list(),
   h <- function(theta=par, order=0, hessian, L, ...) {
     if(order == 0) {
       ##logdetH <- determinant(hessian)$mod
-      logdetH <- 2*determinant(L, sqrt=TRUE)$mod
+      logdetH <- 2*determinant(L, sqrt=TRUE)$modulus
       ans <- f(theta,order=0) + .5*logdetH - length(random)/2*log(2*pi)
       if(LaplaceNonZeroGradient){
         grad <- f(theta,order=1)[random]
@@ -768,7 +768,7 @@ MakeADFun <- function(data, parameters, map=list(),
         e$ind2 <- lookup(hessian,e$Hfull,random)  ## Note: dim(Hfull)>dim(hessian) !
         if (!silent) cat("Done\n")
       }
-      w <- rep(0,length=length(e$Hfull@x))
+      w <- rep(0,length.out=length(e$Hfull@x))
       w[e$ind2] <- ihessian@x[e$ind1]
       ## Reverse mode evaluate ptr in rangedirection w
       ## now gives .5*tr(Hdot*Hinv) !!
@@ -819,6 +819,13 @@ MakeADFun <- function(data, parameters, map=list(),
     par[random] <- opt$par
     par[-random] <- par.fixed
 
+    ## Use alternative Hessian for log determinant?
+    altHessFlag <- !is.null(altHess)
+    if (altHessFlag) {
+        altHess(TRUE) ## Enable alternative hessian
+        on.exit(altHess(FALSE))
+    }
+
     ## HERE! - update hessian and cholesky
     if(!skipFixedEffects){ ## old way
       hess <- spHess(par) ## Full hessian
@@ -861,7 +868,12 @@ MakeADFun <- function(data, parameters, map=list(),
       grad <- h(par,order=1,hessian=hessian,L=L)
       #res <- grad[-random] - t(grad[random])%*%solve(hess[random,random])%*%hess[random,-random]
       #res <- grad[-random] - t(grad[random])%*%solve(hess[random,])%*%t(hess[-random,])
-
+      if (altHessFlag) {
+          ## Restore original hessian and Cholesky
+          altHess(FALSE) ## Disable alternative hessian
+          hessian <- spHess(par, random=TRUE)
+          updateCholesky(L, hessian)
+      }
       ## Profile case correction. The remaining calculations must be
       ## done with the original hessian (which has been destroyed)
       if(!is.null(profile)){
@@ -1751,7 +1763,7 @@ newton <- function (par,fn,gr,he,
   norm <- function(x) sqrt(sum(x^2))
   fn.history <- numeric(maxit)
   fail <- 0
-  for (i in seq(length=maxit)){
+  for (i in seq_len(maxit)){
     parold <- par
     if(trace>=1)cat("iter:",i," ")
     par <- iterate(par)

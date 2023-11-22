@@ -287,12 +287,15 @@ struct jacobian_sparse_t : TMBad::Sparse<TMBad::ADFun<> > {
     init_llt();
   }
   // FIXME: Optimize sparsematrix CTOR by only doing 'setFromTriplets' once?
-  // FIXME: Diagonal must always be part of pattern - add check?
   template<class V>
   Eigen::SparseMatrix<typename V::value_type> as_matrix(const V &Hx) {
     typedef typename V::value_type T;
     typedef Eigen::Triplet<T> T3;
-    std::vector<T3> tripletList;
+    std::vector<T3> tripletList(n);
+    // Diagonal must always be part of pattern
+    for(size_t i=0; i<n; i++) {
+      tripletList[i] = T3(i, i, 0);
+    }
     size_t K = Hx.size();
     for(size_t k=0; k<K; k++) {
       tripletList.push_back( T3( Base::i[k],
@@ -1129,10 +1132,20 @@ struct LogDetOperator : TMBad::global::DynamicOperator< -1, -1> {
       x = args.x_segment(0, n);
     Eigen::SparseMatrix<Scalar> h = pattern(hessian, x);
     llt->factorize(h);
+    // Get out if factorization went wrong
+    if (llt->info() != 0) {
+      args.y(0) = R_NaN;
+      return;
+    }
     args.y(0) = logDeterminant(*llt);
   }
   void reverse(TMBad::ReverseArgs<Scalar> &args) {
     size_t n = input_size();
+    // Get out if factorization went wrong
+    if (llt->info() != 0) {
+      for (size_t i=0; i<n; i++) args.dx(i) = R_NaN;
+      return;
+    }
     std::vector<Scalar> x = args.x_segment(0, n);
     Eigen::SparseMatrix<Scalar> ih = pattern(hessian, x);
     // Inverse subset
