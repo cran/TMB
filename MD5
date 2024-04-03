@@ -1,6 +1,6 @@
-c04aa268f61546acf39e2cf1fe3642be *DESCRIPTION
+09f996262913fde20f127816f73fc2df *DESCRIPTION
 d665ce2442482e9df102977db7cc7020 *NAMESPACE
-ca350ca7ea0ae29930319a39a6315e59 *NEWS
+1bc4c027f61c64390171aec8bef45d99 *NEWS
 06770828bf23ad462887487b1ba1bbd8 *R/TMB.R
 0a8a19e6bc5dd48d053735256258e36a *R/benchmark.R
 b8cc540513343dbfade07876fe7848b3 *R/checker.R
@@ -17,7 +17,7 @@ f0a8e9eeabfb6ba0886e510ffe17b1cf *R/setupRStudio.R
 34f335bfe3adb0536565aa747f241ca9 *R/tmbroot.R
 9aaf0db05e1e4f8f6705e21c97a86af7 *R/utils.R
 8fb198e9443ddd5bbcc0ea60142bd5e0 *R/validation.R
-55263dc844a9081c28174084618d2438 *R/zzz.R
+9da441e35d3cd61578f9091b640a85be *R/zzz.R
 eb282d3bb0c3c979198c80bb8713b2aa *inst/CITATION
 24a129cdf0e26106e1c4f0fa86e1561a *inst/COPYRIGHTS
 be8e72009af7b2c27b1aec05c34c67be *inst/examples/ar1xar1.R
@@ -30,7 +30,7 @@ cafc553645337e587a317b2b05a5addf *inst/examples/randomregression.R
 5bfe7e3858e94c1cbdfe82a19e2c56a0 *inst/examples/simple.cpp
 c16463bf03af3da3c2dfc6a78cf1ce16 *inst/include/EigenWarnings/DisableStupidWarnings
 d4f69ae8aa7da50bf3bb09b1fd598731 *inst/include/Rstream.hpp
-ceb999d5c3ebf4d7f4126b8543c4e77f *inst/include/TMB.hpp
+cd417f602236c02cbe36af28c7c152e6 *inst/include/TMB.hpp
 0eaf7a635884892151adad37884575e9 *inst/include/TMBad/TMBad.cpp
 481c2eb64c1927608bdb0cf504321f2d *inst/include/TMBad/TMBad.hpp
 4d100ee9c1835ed1bc7d82d90e21290f *inst/include/TMBad/ad_blas.hpp
@@ -313,7 +313,7 @@ d5bd4e8231b4d9e9c908d52437e4b963 *inst/include/tiny_ad/tiny_ad/tiny_valarray.hpp
 bed275688206d95b0fd155d5c6b1bc96 *inst/include/tiny_ad/tiny_ad/tiny_vec.hpp
 0a40a6854ee55c83099eae8c54db9831 *inst/include/tiny_ad/tweedie/tweedie.cpp
 65aa74eb2b6c7aea9a23753325879929 *inst/include/tiny_ad/tweedie/tweedie.hpp
-12fa51841e02861c0106af7e38371bd2 *inst/include/tmb_core.hpp
+cfe8c8bd691ed7163f9f5331649944d0 *inst/include/tmb_core.hpp
 a46fde809b02002b302587fc1ff337db *inst/include/tmb_enable_header_only.hpp
 5ad83fb51d885eaf2583324cf8c55e5b *inst/include/tmb_enable_precompile.hpp
 cba5dbd26e532656b13f717613adda93 *inst/include/tmbad_atomic_macro.hpp
@@ -322,7 +322,7 @@ a033a5cedea4b808637d71b5960c859b *inst/include/tmbutils/array.hpp
 e859bdd25a03f386c71d3fb94a723cbc *inst/include/tmbutils/autodiff.hpp
 c96c599ba5f0e8bb0dd0893a367851fe *inst/include/tmbutils/concat.hpp
 c7bb7424b1db4fbde76a1945629336a9 *inst/include/tmbutils/density.hpp
-855d87b2e8f248a114f08f7e2ed8f65a *inst/include/tmbutils/getListElement.hpp
+045bd91a3126d15b835a27c7e1fd306a *inst/include/tmbutils/getListElement.hpp
 8d67ef0679cfb44547e221feabbacb1f *inst/include/tmbutils/interpol.hpp
 7ec47588c1dcad646f724f9b6dc07810 *inst/include/tmbutils/kronecker.hpp
 a5d52f1782b16620d8bbcd7dff948f52 *inst/include/tmbutils/matexp.hpp
