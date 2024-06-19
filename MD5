@@ -1,7 +1,8 @@
-09f996262913fde20f127816f73fc2df *DESCRIPTION
-d665ce2442482e9df102977db7cc7020 *NAMESPACE
-1bc4c027f61c64390171aec8bef45d99 *NEWS
-06770828bf23ad462887487b1ba1bbd8 *R/TMB.R
+05d8ea299c5002ae1bff483fea8e7917 *DESCRIPTION
+b9d03d6f35333b54381881701b594645 *NAMESPACE
+8354e2c42cb7c24fcc73791d4defe33a *NEWS
+f1c4a54a9212313eb4ff384ab4b245a8 *R/TMB.R
+95ecf54795d9cef881726f2b39afb8bd *R/abi_table.R
 0a8a19e6bc5dd48d053735256258e36a *R/benchmark.R
 b8cc540513343dbfade07876fe7848b3 *R/checker.R
 6ce0ba48512cfa7824baad58adc436c2 *R/config.R
@@ -32,7 +33,7 @@ c16463bf03af3da3c2dfc6a78cf1ce16 *inst/include/EigenWarnings/DisableStupidWarnin
 d4f69ae8aa7da50bf3bb09b1fd598731 *inst/include/Rstream.hpp
 cd417f602236c02cbe36af28c7c152e6 *inst/include/TMB.hpp
 0eaf7a635884892151adad37884575e9 *inst/include/TMBad/TMBad.cpp
-481c2eb64c1927608bdb0cf504321f2d *inst/include/TMBad/TMBad.hpp
+7e607ccf607c167485fd542548859461 *inst/include/TMBad/TMBad.hpp
 4d100ee9c1835ed1bc7d82d90e21290f *inst/include/TMBad/ad_blas.hpp
 874a10de7bd0090b14fec2d7129f0c67 *inst/include/TMBad/checkpoint.hpp
 25e8edd341c204ad49dbf2eff67fd13c *inst/include/TMBad/code_generator.hpp
@@ -54,7 +55,7 @@ e3ea72e0669f0b68177acf2ab4ad1074 *inst/include/TMBad/graph_transform.hpp
 315caa47e8fe25e4053348e4ac2b3b1b *inst/include/checkpoint_macro.hpp
 1b4fb806a143a79d3034aa2080fddcd6 *inst/include/config.hpp
 6e2a3b3bc4d28ec135dad5f39089c6be *inst/include/convenience.hpp
-54ae3bd2c920f39a37e0ac1286b63135 *inst/include/convert.hpp
+1ae134e358edf735638195edc679baa2 *inst/include/convert.hpp
 23c76f5ff819f106b7b5a3016f6a671a *inst/include/cppad/CMakeLists.txt
 496717792a2f73e7442031d80860f784 *inst/include/cppad/COPYING
 5d6052d773ced6c5c8138e66b7cab3a9 *inst/include/cppad/CheckNumericType.h
@@ -330,7 +331,7 @@ a5d52f1782b16620d8bbcd7dff948f52 *inst/include/tmbutils/matexp.hpp
 4bae9e452a2191da9bbd9e88cb133bf7 *inst/include/tmbutils/order.hpp
 ff02e0a781e0e5b9023229f8c1d9019b *inst/include/tmbutils/romberg.hpp
 74165a766bb2d9fa7a2cc09fdbf7698e *inst/include/tmbutils/simplicial_inverse_subset.hpp
-fb54588710dc7f24a529cb7f2d935e25 *inst/include/tmbutils/sparse_matrix_exponential.hpp
+8f80ff444aa47613fb460a8e85a4188e *inst/include/tmbutils/sparse_matrix_exponential.hpp
 820d43d49b901be4db059ee51e284a10 *inst/include/tmbutils/splines.hpp
 3e607b30aa2b69d50a481d37f10cf5c1 *inst/include/tmbutils/spmat.hpp
 5dd9f4493291044e64998b2ac61daf84 *inst/include/tmbutils/supernodal_inverse_subset.hpp
@@ -345,6 +346,7 @@ fdbfdb249fd6f51b839f9f7aca5b86d1 *man/GK.Rd
 5e05db54772d2e5a889ed7d96299ccbc *man/MakeADFun.Rd
 c1890fbd90543617a3dd7a37c7a111d8 *man/Rinterface.Rd
 f3cb41bb8a69add2ac41ef4130e288fe *man/SR.Rd
+7af20f2f80c332927d3dd7f3d09c1f25 *man/TMB.Version.Rd
 34a86ce50c73b59cc4bdb30169058536 *man/as.list.sdreport.Rd
 dba8487666ca309829273c6fda29ee86 *man/benchmark.Rd
 b3c3979d28fd2edeb9dd87cf5a56b8a7 *man/checkConsistency.Rd
@@ -374,5 +376,5 @@ c29b28480a5bee583f9900da5d0adbbf *src/Makevars
 9d60805278b72ef9f60edb396b85b77d *src/external_metis.c
 412ff0f60a76105f734d3ac9445dd1cf *src/init.c
 befc9fe6d7fd47dbd1e1964357f17a0b *src/local_stubs.c
-b6a55024c034730e142d68650b913927 *src/solve_subset.c
+1a17f5100f394fe70f0b939d535346b5 *src/solve_subset.c
 49030ef72eb1395af7c71a40d1d256d9 *src/utils.c
