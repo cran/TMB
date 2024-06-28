@@ -1,6 +1,6 @@
-05d8ea299c5002ae1bff483fea8e7917 *DESCRIPTION
+de4940a291f90e942b493658d99f634d *DESCRIPTION
 b9d03d6f35333b54381881701b594645 *NAMESPACE
-8354e2c42cb7c24fcc73791d4defe33a *NEWS
+f31f9f5425f17f7f42c7d1b4268fa6fb *NEWS
 f1c4a54a9212313eb4ff384ab4b245a8 *R/TMB.R
 95ecf54795d9cef881726f2b39afb8bd *R/abi_table.R
 0a8a19e6bc5dd48d053735256258e36a *R/benchmark.R
@@ -377,4 +377,4 @@ c29b28480a5bee583f9900da5d0adbbf *src/Makevars
 412ff0f60a76105f734d3ac9445dd1cf *src/init.c
 befc9fe6d7fd47dbd1e1964357f17a0b *src/local_stubs.c
 1a17f5100f394fe70f0b939d535346b5 *src/solve_subset.c
-49030ef72eb1395af7c71a40d1d256d9 *src/utils.c
+b9f4aef376157c295074e9a9e0b514f2 *src/utils.c
