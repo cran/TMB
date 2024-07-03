@@ -1,6 +1,6 @@
-de4940a291f90e942b493658d99f634d *DESCRIPTION
+589d5ef09ff69016c76c16d93bfc7d63 *DESCRIPTION
 b9d03d6f35333b54381881701b594645 *NAMESPACE
-f31f9f5425f17f7f42c7d1b4268fa6fb *NEWS
+fa77584ce16155c46c5e69174c2effe8 *NEWS
 f1c4a54a9212313eb4ff384ab4b245a8 *R/TMB.R
 95ecf54795d9cef881726f2b39afb8bd *R/abi_table.R
 0a8a19e6bc5dd48d053735256258e36a *R/benchmark.R
@@ -274,7 +274,7 @@ d69dcf21744dca401515265eb37300bb *inst/include/cppad/thread_alloc.hpp
 6e4cad3bc080c35149c2533771c7b426 *inst/include/distributions_R.hpp
 fb91d053ca670d87de3155c2a53149ab *inst/include/dnorm.hpp
 7cb6ef0ce67d83de587c5f6b73a1e314 *inst/include/dynamic_data.hpp
-ac758074c7f643e2f59c55c771c70b35 *inst/include/expm.hpp
+71cecf3c88d0a06ce14bdb1c70d94079 *inst/include/expm.hpp
 325cfa2093bb253bc680a62f23b12539 *inst/include/fft.hpp
 426b135e048a69cc2486a23b943a406a *inst/include/lgamma.hpp
 d41d8cd98f00b204e9800998ecf8427e *inst/include/precompile.hpp
