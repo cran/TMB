@@ -115,11 +115,16 @@ using SparseMatrix = SparseMatrix_rename<T, Flags, StorageIndex>;
 #endif
 #endif
 
+// TMBad config variables
+/** \brief Use deterministic hash codes for tape optimizer ? */
+TMB_EXTERN bool tmbad_deterministic_hash;
+
 /* Include the CppAD library. (Always turn off debug for cppad) */
 #undef NDEBUG
 #define NDEBUG 1
 #include "cppad/cppad.hpp"
 #ifdef TMBAD_FRAMEWORK
+#define TMBAD_DETERMINISTIC_HASH tmbad_deterministic_hash
 #include "TMBad/TMBad.hpp"
 #include "TMBad/tmbad_allow_comparison.hpp"
 #include "TMBad/eigen_numtraits.hpp"
@@ -162,6 +167,11 @@ namespace TMBad {
   bool isinf(const TMBad::ad_aug &x)CSKIP({ return isinf(x.Value()); })
   using std::isnan;
   bool isnan(const TMBad::ad_aug &x)CSKIP({ return isnan(x.Value()); })
+}
+// Add missing numeric_limits specialization
+namespace std {
+template<>
+struct numeric_limits<TMBad::ad_aug> : numeric_limits<TMBad::Scalar> { };
 }
 #endif
 

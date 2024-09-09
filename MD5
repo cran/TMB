@@ -1,6 +1,6 @@
-589d5ef09ff69016c76c16d93bfc7d63 *DESCRIPTION
+1d6c239545245a605645a6dbfe0fd858 *DESCRIPTION
 b9d03d6f35333b54381881701b594645 *NAMESPACE
-fa77584ce16155c46c5e69174c2effe8 *NEWS
+a1a53091c7cd5d7d9f1568222e1f4ced *NEWS
 f1c4a54a9212313eb4ff384ab4b245a8 *R/TMB.R
 95ecf54795d9cef881726f2b39afb8bd *R/abi_table.R
 0a8a19e6bc5dd48d053735256258e36a *R/benchmark.R
@@ -31,15 +31,15 @@ cafc553645337e587a317b2b05a5addf *inst/examples/randomregression.R
 5bfe7e3858e94c1cbdfe82a19e2c56a0 *inst/examples/simple.cpp
 c16463bf03af3da3c2dfc6a78cf1ce16 *inst/include/EigenWarnings/DisableStupidWarnings
 d4f69ae8aa7da50bf3bb09b1fd598731 *inst/include/Rstream.hpp
-cd417f602236c02cbe36af28c7c152e6 *inst/include/TMB.hpp
-0eaf7a635884892151adad37884575e9 *inst/include/TMBad/TMBad.cpp
+d4a7cb10471163958e43fcb23b744d0d *inst/include/TMB.hpp
+9a96db648f1e3933ab419af50a5b8b17 *inst/include/TMBad/TMBad.cpp
 7e607ccf607c167485fd542548859461 *inst/include/TMBad/TMBad.hpp
 4d100ee9c1835ed1bc7d82d90e21290f *inst/include/TMBad/ad_blas.hpp
 874a10de7bd0090b14fec2d7129f0c67 *inst/include/TMBad/checkpoint.hpp
 25e8edd341c204ad49dbf2eff67fd13c *inst/include/TMBad/code_generator.hpp
 20925597983a152bd719e16b1079abe2 *inst/include/TMBad/compile.hpp
 05c6f4b2dff132d39560807329ab8f70 *inst/include/TMBad/compression.hpp
-736ee93df9d8b6a817e750b513f4dfbb *inst/include/TMBad/config.hpp
+811d2099e21213deeed0351b402fa964 *inst/include/TMBad/config.hpp
 11d7cb05b168cd082952ba8a2627b277 *inst/include/TMBad/eigen_numtraits.hpp
 11d17faa33d4c5e7f6bead97c47c3ba0 *inst/include/TMBad/global.hpp
 5e5751d29bf6657124c794c3c2df784a *inst/include/TMBad/graph2dot.hpp
@@ -53,7 +53,7 @@ e3ea72e0669f0b68177acf2ab4ad1074 *inst/include/TMBad/graph_transform.hpp
 6c3c56ee7abc9018016414b4e73839c1 *inst/include/atomic_macro.hpp
 6cccfc5826f53c22f3d8eeb28a30f869 *inst/include/atomic_math.hpp
 315caa47e8fe25e4053348e4ac2b3b1b *inst/include/checkpoint_macro.hpp
-1b4fb806a143a79d3034aa2080fddcd6 *inst/include/config.hpp
+b444b8eb72198bb8ac9e66754fd10d6b *inst/include/config.hpp
 6e2a3b3bc4d28ec135dad5f39089c6be *inst/include/convenience.hpp
 1ae134e358edf735638195edc679baa2 *inst/include/convert.hpp
 23c76f5ff819f106b7b5a3016f6a671a *inst/include/cppad/CMakeLists.txt
