@@ -1,6 +1,6 @@
-8377e7662b2c11d33d40a550d669b081 *DESCRIPTION
+f575a25c827f7abaad4fc71c73d30d7e *DESCRIPTION
 b9d03d6f35333b54381881701b594645 *NAMESPACE
-b2693aca3bce60fe95ab660c1ff4f195 *NEWS
+8967d54e54f34954e2b57571c0b2d1a0 *NEWS
 f1c4a54a9212313eb4ff384ab4b245a8 *R/TMB.R
 95ecf54795d9cef881726f2b39afb8bd *R/abi_table.R
 0a8a19e6bc5dd48d053735256258e36a *R/benchmark.R
@@ -31,7 +31,7 @@ cafc553645337e587a317b2b05a5addf *inst/examples/randomregression.R
 5bfe7e3858e94c1cbdfe82a19e2c56a0 *inst/examples/simple.cpp
 c16463bf03af3da3c2dfc6a78cf1ce16 *inst/include/EigenWarnings/DisableStupidWarnings
 d4f69ae8aa7da50bf3bb09b1fd598731 *inst/include/Rstream.hpp
-d4a7cb10471163958e43fcb23b744d0d *inst/include/TMB.hpp
+22dee6591af458398dd104f09d938cde *inst/include/TMB.hpp
 9a96db648f1e3933ab419af50a5b8b17 *inst/include/TMBad/TMBad.cpp
 7e607ccf607c167485fd542548859461 *inst/include/TMBad/TMBad.hpp
 dca2a2ad139ee413dca368399aac5e0d *inst/include/TMBad/ad_blas.hpp
@@ -55,7 +55,7 @@ f961387f9d46546433fc00ea6b73d7a3 *inst/include/atomic_math.hpp
 315caa47e8fe25e4053348e4ac2b3b1b *inst/include/checkpoint_macro.hpp
 b444b8eb72198bb8ac9e66754fd10d6b *inst/include/config.hpp
 6e2a3b3bc4d28ec135dad5f39089c6be *inst/include/convenience.hpp
-6de29c69aaee7374e04091f35a7da88f *inst/include/convert.hpp
+1ae134e358edf735638195edc679baa2 *inst/include/convert.hpp
 23c76f5ff819f106b7b5a3016f6a671a *inst/include/cppad/CMakeLists.txt
 496717792a2f73e7442031d80860f784 *inst/include/cppad/COPYING
 5d6052d773ced6c5c8138e66b7cab3a9 *inst/include/cppad/CheckNumericType.h
@@ -273,7 +273,7 @@ d69dcf21744dca401515265eb37300bb *inst/include/cppad/thread_alloc.hpp
 8082ce868a2fb453e09a23d18a5beb3d *inst/include/cppad/vector.hpp
 6e4cad3bc080c35149c2533771c7b426 *inst/include/distributions_R.hpp
 fb91d053ca670d87de3155c2a53149ab *inst/include/dnorm.hpp
-7cb6ef0ce67d83de587c5f6b73a1e314 *inst/include/dynamic_data.hpp
+50c44870a6f9567c4c4b86987bf95da6 *inst/include/dynamic_data.hpp
 71cecf3c88d0a06ce14bdb1c70d94079 *inst/include/expm.hpp
 325cfa2093bb253bc680a62f23b12539 *inst/include/fft.hpp
 523190590bff5841d9ae561aef3c6922 *inst/include/lgamma.hpp
@@ -314,7 +314,7 @@ d5bd4e8231b4d9e9c908d52437e4b963 *inst/include/tiny_ad/tiny_ad/tiny_valarray.hpp
 bed275688206d95b0fd155d5c6b1bc96 *inst/include/tiny_ad/tiny_ad/tiny_vec.hpp
 0a40a6854ee55c83099eae8c54db9831 *inst/include/tiny_ad/tweedie/tweedie.cpp
 65aa74eb2b6c7aea9a23753325879929 *inst/include/tiny_ad/tweedie/tweedie.hpp
-1cec45def92ba4770975aef2ce1e2a06 *inst/include/tmb_core.hpp
+763892898a9b96e5263fde6b6b51d8e1 *inst/include/tmb_core.hpp
 a46fde809b02002b302587fc1ff337db *inst/include/tmb_enable_header_only.hpp
 5ad83fb51d885eaf2583324cf8c55e5b *inst/include/tmb_enable_precompile.hpp
 cba5dbd26e532656b13f717613adda93 *inst/include/tmbad_atomic_macro.hpp
@@ -332,14 +332,14 @@ a5d52f1782b16620d8bbcd7dff948f52 *inst/include/tmbutils/matexp.hpp
 ff02e0a781e0e5b9023229f8c1d9019b *inst/include/tmbutils/romberg.hpp
 74165a766bb2d9fa7a2cc09fdbf7698e *inst/include/tmbutils/simplicial_inverse_subset.hpp
 8f80ff444aa47613fb460a8e85a4188e *inst/include/tmbutils/sparse_matrix_exponential.hpp
-820d43d49b901be4db059ee51e284a10 *inst/include/tmbutils/splines.hpp
+78a22d0838bb9975d93db14931dc0ad5 *inst/include/tmbutils/splines.hpp
 3e607b30aa2b69d50a481d37f10cf5c1 *inst/include/tmbutils/spmat.hpp
 5dd9f4493291044e64998b2ac61daf84 *inst/include/tmbutils/supernodal_inverse_subset.hpp
-ab4dcd78cd7a727d5734cd7dc560b6b5 *inst/include/tmbutils/tmbutils.hpp
+e7be1be77ff4c334771b462114d6b52c *inst/include/tmbutils/tmbutils.hpp
 47fffe15f21dde554416ea62818d8787 *inst/include/tmbutils/tmbutils_extra.hpp
 234f0579fd7f4950be20a74c9ec69095 *inst/include/tmbutils/vector.hpp
 1fd33ea45585479c27b20327ac2256f9 *inst/include/tmbutils/vectorize.hpp
-852feac7e8101790d3de80c6f0371db5 *inst/include/toggle_thread_safe_R.hpp
+b205255294ceeaa37ae092ddc19a0e17 *inst/include/toggle_thread_safe_R.hpp
 cac34e6a00e1d301fadd4c4e5f4744d3 *inst/template.cpp
 585ff35e0e23841ed42e02e7a8d97d36 *man/FreeADFun.Rd
 fdbfdb249fd6f51b839f9f7aca5b86d1 *man/GK.Rd
